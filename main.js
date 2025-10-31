@@ -1,5 +1,6 @@
 // Main application entry point
 // This file is loaded with cache busting via index.html
+// Pre-commit hook now configured for automatic version.txt updates
 
 import * as debugConsole from './console.js';
 
