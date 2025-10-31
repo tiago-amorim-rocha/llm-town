@@ -6,7 +6,7 @@
   <!-- iOS Game Optimized Viewport -->
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 
-  <title>Game Template</title>
+  <title>Survival Scene</title>
 
   <!-- PWA Configuration -->
   <link rel="manifest" href="./manifest.json">
@@ -51,20 +51,7 @@
     }
 
     body {
-      display: flex;
-      align-items: center;
-      justify-content: center;
       touch-action: manipulation; /* Prevents double-tap zoom */
-    }
-    .container {
-      text-align: center;
-      padding: 2rem;
-    }
-    code {
-      background: #1a1d23;
-      padding: 0.2em 0.4em;
-      border-radius: 3px;
-      font-size: 0.9em;
     }
 
     /* Console styles */
@@ -185,12 +172,6 @@
 </head>
 
 <body>
-  <div class="container">
-    <h1>Template Project</h1>
-    <p>This is a template repository with cache busting setup.</p>
-    <p>Build version: <code id="version">Loading...</code></p>
-  </div>
-
   <!-- Console UI -->
   <button id="console-toggle">🐛</button>
   <div id="console-panel">
@@ -208,7 +189,6 @@
       const res = await fetch('./version.txt', { cache: 'no-store' });
       const v = res.ok ? (await res.text()).trim() : String(Date.now());
       window.__BUILD = v;
-      document.getElementById('version').textContent = v;
 
       // Load main module with cache busting
       const s = document.createElement('script');
@@ -217,8 +197,7 @@
       document.head.appendChild(s);
     } catch (err) {
       console.warn('version.txt missing, using fallback timestamp');
-      const fallback = String(Date.now());
-      document.getElementById('version').textContent = fallback + ' (fallback)';
+      window.__BUILD = String(Date.now());
     }
   })();
   </script>
