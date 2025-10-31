@@ -1,0 +1,13 @@
+#!/bin/sh
+# Pre-commit hook to auto-update version.txt with current timestamp
+# This ensures every commit gets a unique version number for cache busting
+
+# Update version.txt with current timestamp (milliseconds)
+date +%s%3N > version.txt
+
+# Add version.txt to the commit
+git add version.txt
+
+echo "✅ Updated version.txt"
+
+exit 0

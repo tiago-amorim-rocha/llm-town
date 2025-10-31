@@ -1,17 +1,35 @@
 # LLM Town
 
+---
+# ⚠️ CRITICAL: FIRST TIME SETUP ⚠️
+
+**If this is a new environment or session, RUN THIS IMMEDIATELY:**
+
+```bash
+./install-hooks.sh
+```
+
+**Why this matters:**
+- Git hooks config is NOT tracked by git (lives in `.git/config`)
+- Without this, `version.txt` won't auto-update on commits
+- Users won't get notified of new deployments (broken cache busting)
+- **This is the #1 issue to watch for!**
+
+**What it does:**
+- Runs: `git config core.hooksPath .githooks`
+- Tells git to use tracked hooks from `.githooks/` directory
+- The pre-commit hook then auto-updates `version.txt` on every commit
+
+**For AI Assistants:** If you see version.txt not updating in commits, run `./install-hooks.sh` immediately before any commits!
+
+---
+
 ## Project Overview
 A 2D survival scene visualization with procedurally generated trees, grass, a bonfire, and character. Built as a Progressive Web App optimized for iOS devices.
 
 **Navigation**: Code uses section markers for easy navigation. Search for `// === SECTION NAME ===` patterns in code files. See "Code Structure" below for all markers.
 
 ## Quick Reference
-
-### ⚠️ FIRST TIME SETUP (or if environment reset)
-```bash
-./install-hooks.sh
-```
-This installs the git hook that auto-updates `version.txt`. **Must be run once per environment.**
 
 ### Making Changes
 1. **Edit code** - Main logic is in `main.js`
@@ -72,22 +90,23 @@ Main scene setup in `initScene()`:
 
 ## Automated Systems
 
-### ⚙️ Pre-commit Hook (REQUIRES INSTALLATION)
-**IMPORTANT**: Git hooks are NOT tracked by git. Run `./install-hooks.sh` to install.
+### ⚙️ Pre-commit Hook (via .githooks)
+**How it works:**
+- Hook source is tracked in `.githooks/pre-commit` ✅ (in git)
+- Git config points to `.githooks/` via `core.hooksPath` ❌ (NOT in git)
+- Must run `./install-hooks.sh` to configure git after environment resets
 
-**Location**:
-- Source: `hooks/pre-commit` (tracked in repo)
-- Installed to: `.git/hooks/pre-commit` (NOT tracked, must be installed)
+**What the hook does:**
+- Auto-updates `version.txt` with timestamp on every commit
+- Ensures cache busting works without manual edits
+- Runs automatically before each commit
 
-**Installation**:
+**Setup** (required once per environment):
 ```bash
 ./install-hooks.sh
 ```
 
-**Function**: Auto-updates `version.txt` with timestamp on every commit
-**Why**: Ensures cache busting works without manual version.txt edits
-
-**For AI Assistants**: If `version.txt` is not updating on commits, run `./install-hooks.sh` immediately. This may need to be done at the start of each session if the environment resets.
+This runs: `git config core.hooksPath .githooks`
 
 ### ✅ Auto-promotion Workflow
 **File**: `.github/workflows/autopromote.yml`
@@ -189,13 +208,16 @@ s.src = `./main.js?v=${encodeURIComponent(version)}`;
 ├── .github/workflows/
 │   ├── autopromote.yml           # Auto-merge claude/** → main
 │   └── cleanup-old-branches.yml  # Daily branch cleanup
-├── .git/hooks/
-│   └── pre-commit                # Auto-updates version.txt ✅ INSTALLED
+├── .githooks/
+│   └── pre-commit                # Auto-updates version.txt (TRACKED IN GIT)
+├── hooks/                        # Legacy - can be removed
+│   └── pre-commit                # Old hook location
+├── install-hooks.sh              # Run this: git config core.hooksPath .githooks
 ├── index.html                    # Entry point + cache busting
 ├── main.js                       # Scene logic, entities, rendering
 ├── console.js                    # Debug console module
 ├── manifest.json                 # PWA configuration
 ├── icon-512.svg                  # App icon
-├── version.txt                   # Build version (auto-updated)
+├── version.txt                   # Build version (auto-updated by hook)
 └── CLAUDE.md                     # This file
 ```
