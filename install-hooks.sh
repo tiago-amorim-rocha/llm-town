@@ -1,8 +1,8 @@
 #!/bin/bash
-# Install git hooks from the hooks/ directory
-# Run this script after cloning the repository to set up automatic version.txt updates
+# Configure git to use .githooks directory for hooks
+# Run this script after cloning the repository or when environment resets
 
-echo "📦 Installing git hooks..."
+echo "📦 Configuring git hooks..."
 
 # Check if we're in a git repository
 if [ ! -d ".git" ]; then
@@ -10,20 +10,17 @@ if [ ! -d ".git" ]; then
   exit 1
 fi
 
-# Create .git/hooks directory if it doesn't exist
-mkdir -p .git/hooks
-
-# Copy pre-commit hook
-if [ -f "hooks/pre-commit" ]; then
-  cp hooks/pre-commit .git/hooks/pre-commit
-  chmod +x .git/hooks/pre-commit
-  echo "✅ Installed pre-commit hook (auto-updates version.txt)"
-else
-  echo "❌ Error: hooks/pre-commit not found"
+# Check if .githooks directory exists
+if [ ! -d ".githooks" ]; then
+  echo "❌ Error: .githooks directory not found"
   exit 1
 fi
 
-echo "🎉 Git hooks installed successfully!"
+# Configure git to use .githooks directory
+git config core.hooksPath .githooks
+
+echo "✅ Git hooks configured successfully!"
 echo ""
-echo "ℹ️  The pre-commit hook will automatically update version.txt on every commit."
+echo "ℹ️  Git is now configured to use hooks from .githooks/ directory."
+echo "   The pre-commit hook will automatically update version.txt on every commit."
 echo "   This ensures your PWA users get notified of new versions."
