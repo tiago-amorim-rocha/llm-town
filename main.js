@@ -134,6 +134,144 @@ class Entity {
 // Game state
 let entities = [];
 let canvas = null;
+let characterEntity = null; // Reference to the character entity
+
+// ============================================================
+// DAY/NIGHT CYCLE
+// ============================================================
+
+// Day/night configuration
+const DAY_NIGHT_CYCLE_DURATION = 30000; // Full cycle in milliseconds (30 seconds for testing)
+const DAY_VISIBILITY_RADIUS = 300; // Large visibility during day
+const NIGHT_VISIBILITY_RADIUS = 120; // Small visibility during night
+let cycleStartTime = Date.now();
+
+// Get current time of day (0 = midnight, 0.5 = noon, 1 = midnight)
+function getTimeOfDay() {
+  const elapsed = Date.now() - cycleStartTime;
+  const progress = (elapsed % DAY_NIGHT_CYCLE_DURATION) / DAY_NIGHT_CYCLE_DURATION;
+  return progress;
+}
+
+// Check if it's currently day or night
+function isDaytime() {
+  const time = getTimeOfDay();
+  return time >= 0.25 && time < 0.75; // Day from 6am to 6pm
+}
+
+// Get current visibility radius based on time of day
+function getVisibilityRadius() {
+  const time = getTimeOfDay();
+  // Smooth transition between day and night
+  const dayProgress = Math.sin(time * Math.PI * 2) * 0.5 + 0.5;
+  return NIGHT_VISIBILITY_RADIUS + (DAY_VISIBILITY_RADIUS - NIGHT_VISIBILITY_RADIUS) * dayProgress;
+}
+
+// Get darkness overlay opacity based on time of day
+function getDarknessOpacity() {
+  const time = getTimeOfDay();
+  // Darker at night (0.0 = midnight, 0.5 = noon)
+  const darkness = Math.cos(time * Math.PI * 2) * 0.5 + 0.5;
+  return darkness * 0.6; // Max 60% darkness
+}
+
+// ============================================================
+// VISIBILITY SYSTEM
+// ============================================================
+
+// Track which entities are currently visible
+let visibleEntities = new Set();
+
+// Calculate distance between two points
+function distance(x1, y1, x2, y2) {
+  return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+}
+
+// Check if an entity is within visibility range of the character
+function isEntityVisible(entity) {
+  if (!characterEntity || entity === characterEntity) return true;
+  const dist = distance(characterEntity.x, characterEntity.y, entity.x, entity.y);
+  return dist <= getVisibilityRadius();
+}
+
+// Update visibility for all entities
+function updateVisibility() {
+  const previouslyVisible = new Set(visibleEntities);
+  visibleEntities.clear();
+
+  for (const entity of entities) {
+    if (isEntityVisible(entity)) {
+      visibleEntities.add(entity);
+
+      // Log when entity becomes visible
+      if (!previouslyVisible.has(entity) && entity !== characterEntity) {
+        const dist = distance(characterEntity.x, characterEntity.y, entity.x, entity.y);
+        console.log(`👁️ ${entity.type} became visible at distance ${dist.toFixed(1)}px`);
+      }
+    } else {
+      // Log when entity becomes invisible
+      if (previouslyVisible.has(entity) && entity !== characterEntity) {
+        console.log(`🌫️ ${entity.type} became invisible`);
+      }
+    }
+  }
+}
+
+// ============================================================
+// CHARACTER MOVEMENT
+// ============================================================
+
+// Movement configuration
+const MOVEMENT_SPEED = 1.5; // Pixels per frame
+const DIRECTION_CHANGE_INTERVAL = 2000; // Change direction every 2 seconds
+const MOVEMENT_UPDATE_INTERVAL = 1000 / 30; // 30 fps movement updates
+
+let currentDirection = { x: 0, y: 0 };
+let lastDirectionChange = Date.now();
+
+// Generate random direction
+function randomDirection() {
+  const angle = Math.random() * Math.PI * 2;
+  return {
+    x: Math.cos(angle),
+    y: Math.sin(angle)
+  };
+}
+
+// Update character position
+function updateCharacterPosition() {
+  if (!characterEntity) return;
+
+  // Change direction periodically
+  if (Date.now() - lastDirectionChange > DIRECTION_CHANGE_INTERVAL) {
+    currentDirection = randomDirection();
+    lastDirectionChange = Date.now();
+  }
+
+  // Update position
+  const newX = characterEntity.x + currentDirection.x * MOVEMENT_SPEED;
+  const newY = characterEntity.y + currentDirection.y * MOVEMENT_SPEED;
+
+  // Keep within bounds with padding
+  const padding = 50;
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+
+  if (newX >= padding && newX <= width - padding) {
+    characterEntity.x = newX;
+  } else {
+    currentDirection.x *= -1; // Bounce off edge
+  }
+
+  if (newY >= padding && newY <= height - padding) {
+    characterEntity.y = newY;
+  } else {
+    currentDirection.y *= -1; // Bounce off edge
+  }
+
+  // Re-sort entities by Y position for proper depth ordering
+  entities.sort((a, b) => a.y - b.y);
+}
 
 // ============================================================
 // SCENE GENERATION
@@ -158,7 +296,8 @@ function initScene() {
   // Place character beside bonfire (to the right)
   const characterX = bonfireX + 37.5; // 25 * 1.5
   const characterY = bonfireY + 7.5; // 5 * 1.5
-  entities.push(new Entity('character', characterX, characterY, characterScale));
+  characterEntity = new Entity('character', characterX, characterY, characterScale);
+  entities.push(characterEntity);
 
   // --- Tree Placement ---
   // Generate random trees (15-25 trees) with spacing enforcement
@@ -220,6 +359,9 @@ function initScene() {
   // Sort entities by Y position for proper depth ordering
   entities.sort((a, b) => a.y - b.y);
 
+  // Initialize visibility
+  updateVisibility();
+
   render();
 }
 
@@ -232,11 +374,42 @@ function render() {
 
   const width = window.innerWidth;
   const height = window.innerHeight;
+  const visRadius = getVisibilityRadius();
+  const darknessOpacity = getDarknessOpacity();
+
+  // Render visible entities
+  const visibleEntitySVG = entities
+    .filter(e => visibleEntities.has(e))
+    .map(e => e.render())
+    .join('');
+
+  // Render visibility circle around character
+  const visibilityCircle = characterEntity ? `
+    <circle
+      cx="${characterEntity.x}"
+      cy="${characterEntity.y}"
+      r="${visRadius}"
+      fill="none"
+      stroke="#ffdd1a"
+      stroke-width="2"
+      stroke-dasharray="5,5"
+      opacity="0.6"
+    />
+  ` : '';
 
   canvas.innerHTML = `
     <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+      <!-- Background -->
       <rect width="100%" height="100%" fill="#1a3d1a"/>
-      ${entities.map(e => e.render()).join('')}
+
+      <!-- Entities -->
+      ${visibleEntitySVG}
+
+      <!-- Visibility circle -->
+      ${visibilityCircle}
+
+      <!-- Darkness overlay for night -->
+      <rect width="100%" height="100%" fill="#000000" opacity="${darknessOpacity}" pointer-events="none"/>
     </svg>
   `;
 }
@@ -266,6 +439,17 @@ function init() {
 
   // Initialize scene
   initScene();
+
+  // Start game loop for movement and visibility updates
+  setInterval(() => {
+    updateCharacterPosition();
+    updateVisibility();
+    render();
+  }, MOVEMENT_UPDATE_INTERVAL);
+
+  console.log('🎮 Game loop started');
+  console.log(`🌞 Day/night cycle: ${DAY_NIGHT_CYCLE_DURATION / 1000}s`);
+  console.log(`👁️ Visibility: ${DAY_VISIBILITY_RADIUS}px (day) → ${NIGHT_VISIBILITY_RADIUS}px (night)`);
 
   // Handle window resize
   window.addEventListener('resize', () => {
