@@ -1,147 +1,157 @@
-# iOS Game Template
+# LLM Town
 
-## Overview
-This is a template repository optimized for building web games for iOS devices. Designed to run as a PWA (Progressive Web App) via "Add to Home Screen" in Safari. Includes GitHub Pages deployment, cache busting, and iOS-specific optimizations for safe areas, keyboard handling, and touch interactions.
+## Project Overview
+A 2D survival scene visualization with procedurally generated trees, grass, a bonfire, and character. Built as a Progressive Web App optimized for iOS devices.
 
-## Features
+## Quick Reference
 
-### 1. Auto-promotion Workflow
-- **File**: `.github/workflows/autopromote.yml`
-- Automatically merges `claude/**` branches into `main` when pushed
-- Enables seamless CI/CD workflow with Claude Code
+### Making Changes
+1. **Edit code** - Main logic is in `main.js`
+2. **Commit** - Pre-commit hook auto-updates `version.txt` for cache busting
+3. **Push to `claude/**` branch** - Auto-promotes to `main` and deploys via GitHub Pages
 
-### 2. Branch Cleanup Workflow
-- **File**: `.github/workflows/cleanup-old-branches.yml`
-- Runs daily at 3am UTC to delete old `claude/**` branches
-- Only deletes branches older than 24 hours
-- Keeps your repository clean from stale Claude Code branches
-- Can be triggered manually via GitHub Actions UI
+### Key Files
+- **`main.js`** - Scene rendering, entity system, tree/grass generation (main.js:109-232)
+- **`index.html`** - Entry point, cache busting loader, iOS optimizations
+- **`console.js`** - Debug console (🐛 button in bottom-right)
+- **`version.txt`** - Cache-busting timestamp (auto-updated by git hook)
+- **`manifest.json`** - PWA config for iOS "Add to Home Screen"
 
-### 3. Cache Busting System
-- **File**: `version.txt` - Contains timestamp for cache invalidation
-- **Implementation**: `index.html` - Auto-versioned module loader
-- Ensures browsers always load the latest version of modules
-- Uses `?v=<timestamp>` query parameter on module imports
+### Project Architecture
 
-### 4. In-Page Debug Console
-- **File**: `console.js` - Debug console module
-- Floating 🐛 button in bottom-right corner
-- Captures console.log, console.info, console.debug, console.warn, console.error
-- Displays messages with timestamps and color coding
-- Keeps last 100 messages in history
-- Useful for debugging on mobile devices or when DevTools isn't available
+**Entity System** (main.js:110-122)
+- `Entity` class stores type, position (x, y), and scale
+- Types: `tree`, `grass`, `bonfire`, `character`
+- Entities sorted by Y position for depth ordering (main.js:173)
 
-### 5. iOS Game Optimizations
-- **PWA Support**: manifest.json for "Add to Home Screen" functionality
-- **Safe Area Handling**: Automatic padding for notch, home indicator, and device edges
-- **Keyboard Protection**: Fixed viewport prevents keyboard from resizing game area
-- **Touch Optimizations**:
-  - Disabled double-tap zoom (`touch-action: manipulation`)
-  - Disabled text selection and callouts
-  - Disabled tap highlights
-  - Prevented pull-to-refresh
-- **Fullscreen Mode**: Runs standalone without Safari UI when launched from home screen
+**Scene Generation** (main.js:128-176)
+- Character height scales to 1/20 of screen height
+- Bonfire placed at center-bottom (50% X, 65% Y)
+- Character positioned to bonfire's right
+- Trees: 15-25 randomly placed with spacing checks
+  - Horizontal spacing: 80px minimum
+  - Vertical spacing: 150px minimum (increased for better distribution)
+  - Max 50 placement attempts per tree
+  - Trees avoid 75px radius around bonfire
+- Grass: 10-15 patches randomly scattered
 
-## How It Works
+**SVG Components** (main.js:64-107)
+- Reusable SVG generators with scale parameter
+- Layered shapes for visual depth
+- Trees use multiple overlapping ellipses
+- Bonfire has animated-looking flames (3 layers)
 
-### iOS Safe Areas
-The template uses CSS `env(safe-area-inset-*)` to respect device safe areas:
-- **Notch area** (top)
-- **Home indicator** (bottom)
-- **Screen edges** (left/right on landscape)
+## Automated Systems
 
-All UI elements (including debug console) are positioned with safe area awareness.
+### ✅ Pre-commit Hook (INSTALLED)
+**Location**: `.git/hooks/pre-commit`
+**Function**: Auto-updates `version.txt` with timestamp on every commit
+**Status**: Active and tested
+**Why**: Ensures cache busting works without manual version.txt edits
 
-### Keyboard Handling
-Using `position: fixed` on html/body prevents the virtual keyboard from resizing the viewport. The game canvas remains at full size even when the keyboard appears.
+### ✅ Auto-promotion Workflow
+**File**: `.github/workflows/autopromote.yml`
+**Trigger**: Push to any `claude/**` branch
+**Action**: Automatically merges to `main` branch
+**Result**: Deploys to GitHub Pages immediately
 
-### Cache Busting
-The `index.html` includes a script that:
-1. Fetches `version.txt` (bypassing cache)
-2. Uses the version to append `?v=<version>` to module imports
-3. Falls back to `Date.now()` if version.txt is unavailable
+### ✅ Branch Cleanup
+**File**: `.github/workflows/cleanup-old-branches.yml`
+**Schedule**: Daily at 3am UTC
+**Action**: Deletes `claude/**` branches older than 24 hours
+**Manual**: Can trigger via GitHub Actions UI
 
-Example:
+## Cache Busting System
+
+**How it works:**
+1. `index.html` fetches `version.txt` (bypassing cache)
+2. Appends `?v=<timestamp>` to `main.js` import
+3. Browser treats each version as new file, no stale cache
+
+**Example:**
 ```javascript
 // Loads: ./main.js?v=1761844854000
-const s = document.createElement('script');
-s.type = 'module';
 s.src = `./main.js?v=${encodeURIComponent(version)}`;
-document.head.appendChild(s);
 ```
 
-### Pre-commit Hook (Recommended)
-Automatically update `version.txt` on each commit by creating `.git/hooks/pre-commit`:
+**Note**: Only `main.js` needs explicit versioning. ES6 imports inherit the cache-busted URL automatically.
 
-```bash
-#!/bin/sh
-# Update version.txt with current timestamp
-date +%s%3N > version.txt
-git add version.txt
-```
+## iOS Optimizations
 
-Make it executable: `chmod +x .git/hooks/pre-commit`
+### PWA Support
+- Add to Home Screen via Safari
+- Runs fullscreen without browser UI
+- Configured in `manifest.json`
 
-**Why pre-commit over post-commit?**
-- Pre-commit includes the version.txt update IN the same commit
-- Post-commit would require a second commit to save the version change
-- Cleaner git history and ensures version.txt is always in sync
+### Safe Areas
+- CSS `env(safe-area-inset-*)` handles notch, home indicator, screen edges
+- All UI elements (including debug console) respect safe areas
 
-## Usage
+### Touch Handling
+- Disabled double-tap zoom (`touch-action: manipulation`)
+- Disabled text selection and callouts
+- Disabled tap highlights
+- Prevented pull-to-refresh
 
-### As a Template
-1. Use this repository as a template for new projects
-2. Update this CLAUDE.md with project-specific details
-3. Edit `main.js` to build your application (or add more modules)
-4. The cache busting and deployment workflows are ready to use
+### Keyboard Protection
+- `position: fixed` on html/body
+- Virtual keyboard doesn't resize viewport
+- Game canvas stays full-size
 
-### Deployment
-1. Enable GitHub Pages in repository settings
-2. Set source to "Deploy from a branch" (select main branch)
-3. Push to `main` to deploy
-4. On iOS: Open in Safari → Share → Add to Home Screen
-5. Launch from home screen for fullscreen PWA experience
+## Debug Console
 
-## Customization
+**Access**: Click 🐛 button (bottom-right corner)
+**Captures**: `console.log`, `console.info`, `console.debug`, `console.warn`, `console.error`
+**History**: Last 100 messages with timestamps and color coding
+**Use case**: Essential for mobile debugging without DevTools
 
-### Update Metadata
-- Change page title and app name in `index.html` and `manifest.json`
-- Replace `icon-512.svg` with your game's icon
-- Update this CLAUDE.md with your project architecture
+**To disable**: Remove `console.js` import from `main.js`
 
-### Add Modules
-The template includes `main.js` as a starter file. To add more modules:
+## Common Tasks
 
-1. Create your module file (e.g., `utils.js`)
-2. Import it in `main.js`:
-   ```javascript
-   import { myFunction } from './utils.js';
-   ```
+### Add New Entity Type
+1. Add SVG component to `SVG_COMPONENTS` (main.js:65-107)
+2. Create entity in `initScene()` with `new Entity(type, x, y, scale)`
+3. Entities auto-render based on `type` property
 
-Note: Only `main.js` needs explicit cache busting in `index.html`. Other modules imported via ES6 `import` inherit the cache-busted URL automatically.
+### Adjust Tree Spacing
+- Edit `minHorizontalSpacing` and `minVerticalSpacing` (main.js:151-152)
+- Edit `maxAttempts` for placement retry limit (main.js:153)
 
-### Debug Console
-Click the 🐛 button in the bottom-right corner to open the debug console. All console output (log, info, debug, warn, error) will be captured and displayed here. This is especially useful for:
-- Debugging on mobile devices
-- When browser DevTools aren't available
-- Quick in-page console access during development
+### Change Scene Layout
+- Modify positions in `initScene()` (main.js:128-176)
+- Bonfire position affects character placement (relative positioning)
+- Trees avoid bonfire radius (line 158-169)
 
-To disable the console in production, simply remove the `console.js` import and initialization from `main.js`.
+### Update Auto-reload Frequency
+- Edit `VERSION_CHECK_INTERVAL` (main.js:8)
+- Default: 2000ms (2 seconds)
 
-## Structure
+## Deployment
+
+**GitHub Pages Setup:**
+1. Settings → Pages → Deploy from branch
+2. Select `main` branch
+3. Push to any `claude/**` branch → auto-deploys
+
+**iOS Installation:**
+1. Open in Safari
+2. Share → Add to Home Screen
+3. Launch from home screen for fullscreen PWA
+
+## File Structure
 ```
 .
 ├── .github/workflows/
-│   ├── autopromote.yml           # Auto-merge claude/** branches
-│   └── cleanup-old-branches.yml  # Daily cleanup of old claude branches
+│   ├── autopromote.yml           # Auto-merge claude/** → main
+│   └── cleanup-old-branches.yml  # Daily branch cleanup
 ├── .git/hooks/
-│   └── pre-commit                # Updates version.txt (create manually)
-├── .gitignore                    # Git ignore patterns
-├── CLAUDE.md                     # This file - project context for Claude
-├── index.html                    # Entry point with iOS optimizations
-├── main.js                       # Main application module (starter file)
-├── console.js                    # In-page debug console
-├── manifest.json                 # PWA manifest for iOS home screen
-├── icon-512.svg                  # App icon (replace with your own)
-└── version.txt                   # Build version timestamp
+│   └── pre-commit                # Auto-updates version.txt ✅ INSTALLED
+├── index.html                    # Entry point + cache busting
+├── main.js                       # Scene logic, entities, rendering
+├── console.js                    # Debug console module
+├── manifest.json                 # PWA configuration
+├── icon-512.svg                  # App icon
+├── version.txt                   # Build version (auto-updated)
+└── CLAUDE.md                     # This file
 ```
