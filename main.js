@@ -4,6 +4,10 @@
 
 import * as debugConsole from './console.js';
 
+// ============================================================
+// AUTO-RELOAD SYSTEM
+// ============================================================
+
 // Version checking configuration
 const VERSION_CHECK_INTERVAL = 2000; // Check every 2 seconds
 let initialVersion = window.__BUILD;
@@ -61,7 +65,10 @@ function initReloadButton() {
   }
 }
 
-// SVG Component Definitions
+// ============================================================
+// SVG COMPONENTS
+// ============================================================
+
 const SVG_COMPONENTS = {
   tree: (scale = 1) => `
     <g transform="scale(${scale})">
@@ -106,7 +113,10 @@ const SVG_COMPONENTS = {
   `
 };
 
-// Entity system
+// ============================================================
+// ENTITY SYSTEM
+// ============================================================
+
 class Entity {
   constructor(type, x, y, scale = 1) {
     this.type = type;
@@ -124,6 +134,10 @@ class Entity {
 // Game state
 let entities = [];
 let canvas = null;
+
+// ============================================================
+// SCENE GENERATION
+// ============================================================
 
 function initScene() {
   const width = window.innerWidth;
@@ -146,7 +160,8 @@ function initScene() {
   const characterY = bonfireY + 7.5; // 5 * 1.5
   entities.push(new Entity('character', characterX, characterY, characterScale));
 
-  // Generate random trees (15-25 trees - more trees)
+  // --- Tree Placement ---
+  // Generate random trees (15-25 trees) with spacing enforcement
   const treeCount = 15 + Math.floor(Math.random() * 11);
   const minHorizontalSpacing = 80; // Minimum horizontal distance between trees
   const minVerticalSpacing = 150; // Larger vertical spacing
@@ -192,6 +207,7 @@ function initScene() {
     }
   }
 
+  // --- Grass Placement ---
   // Generate random grass patches (10-15)
   const grassCount = 10 + Math.floor(Math.random() * 6);
   for (let i = 0; i < grassCount; i++) {
@@ -207,6 +223,10 @@ function initScene() {
   render();
 }
 
+// ============================================================
+// RENDERING
+// ============================================================
+
 function render() {
   if (!canvas) return;
 
@@ -221,7 +241,10 @@ function render() {
   `;
 }
 
-// Example: Initialize your app
+// ============================================================
+// INITIALIZATION
+// ============================================================
+
 function init() {
   // Initialize debug console FIRST
   debugConsole.init();

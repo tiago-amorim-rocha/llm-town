@@ -3,6 +3,8 @@
 ## Project Overview
 A 2D survival scene visualization with procedurally generated trees, grass, a bonfire, and character. Built as a Progressive Web App optimized for iOS devices.
 
+**Navigation**: Code uses section markers for easy navigation. Search for `// === SECTION NAME ===` patterns in code files. See "Code Structure" below for all markers.
+
 ## Quick Reference
 
 ### Making Changes
@@ -11,35 +13,56 @@ A 2D survival scene visualization with procedurally generated trees, grass, a bo
 3. **Push to `claude/**` branch** - Auto-promotes to `main` and deploys via GitHub Pages
 
 ### Key Files
-- **`main.js`** - Scene rendering, entity system, tree/grass generation (main.js:109-232)
+- **`main.js`** - Scene rendering, entity system, tree/grass generation
 - **`index.html`** - Entry point, cache busting loader, iOS optimizations
 - **`console.js`** - Debug console (🐛 button in bottom-right)
 - **`version.txt`** - Cache-busting timestamp (auto-updated by git hook)
 - **`manifest.json`** - PWA config for iOS "Add to Home Screen"
 
-### Project Architecture
+### Code Structure (main.js)
 
-**Entity System** (main.js:110-122)
+Code is organized with clear section markers. Search for these to navigate:
+
+**`// === AUTO-RELOAD SYSTEM ===`**
+- Version checking every 2 seconds (`VERSION_CHECK_INTERVAL`)
+- Shows reload button when new version detected
+- Reload button in `index.html`
+
+**`// === SVG COMPONENTS ===`**
+- Reusable SVG generators: `tree`, `grass`, `bonfire`, `character`
+- Each accepts scale parameter
+- Layered shapes for visual depth
+
+**`// === ENTITY SYSTEM ===`**
 - `Entity` class stores type, position (x, y), and scale
-- Types: `tree`, `grass`, `bonfire`, `character`
-- Entities sorted by Y position for depth ordering (main.js:173)
+- All entities use same `render()` method
+- Entities sorted by Y position for depth ordering
 
-**Scene Generation** (main.js:128-176)
+**`// === SCENE GENERATION ===`**
+Main scene setup in `initScene()`:
 - Character height scales to 1/20 of screen height
 - Bonfire placed at center-bottom (50% X, 65% Y)
 - Character positioned to bonfire's right
-- Trees: 15-25 randomly placed with spacing checks
-  - Horizontal spacing: 80px minimum
-  - Vertical spacing: 150px minimum (increased for better distribution)
-  - Max 50 placement attempts per tree
-  - Trees avoid 75px radius around bonfire
-- Grass: 10-15 patches randomly scattered
 
-**SVG Components** (main.js:64-107)
-- Reusable SVG generators with scale parameter
-- Layered shapes for visual depth
-- Trees use multiple overlapping ellipses
-- Bonfire has animated-looking flames (3 layers)
+**Sub-section: `// --- Tree Placement ---`**
+- 15-25 trees randomly placed with spacing enforcement
+- `minHorizontalSpacing`: 80px minimum
+- `minVerticalSpacing`: 150px minimum (larger vertical spacing)
+- `maxAttempts`: 50 retry attempts per tree
+- Trees avoid 75px radius around bonfire
+
+**Sub-section: `// --- Grass Placement ---`**
+- 10-15 grass patches randomly scattered
+- No spacing constraints
+
+**`// === RENDERING ===`**
+- SVG canvas with all entities
+- Entities pre-sorted by Y for correct layering
+
+**`// === INITIALIZATION ===`**
+- Debug console setup
+- Version checking start
+- Canvas creation and scene initialization
 
 ## Automated Systems
 
@@ -110,22 +133,26 @@ s.src = `./main.js?v=${encodeURIComponent(version)}`;
 ## Common Tasks
 
 ### Add New Entity Type
-1. Add SVG component to `SVG_COMPONENTS` (main.js:65-107)
-2. Create entity in `initScene()` with `new Entity(type, x, y, scale)`
-3. Entities auto-render based on `type` property
+1. Find `// === SVG COMPONENTS ===` section
+2. Add new SVG generator to `SVG_COMPONENTS` object
+3. In `// === SCENE GENERATION ===`, create entity with `new Entity(type, x, y, scale)`
+4. Entities auto-render based on `type` property
 
 ### Adjust Tree Spacing
-- Edit `minHorizontalSpacing` and `minVerticalSpacing` (main.js:151-152)
-- Edit `maxAttempts` for placement retry limit (main.js:153)
+1. Find `// --- Tree Placement ---` section
+2. Edit `minHorizontalSpacing` and `minVerticalSpacing` constants
+3. Edit `maxAttempts` for placement retry limit
 
 ### Change Scene Layout
-- Modify positions in `initScene()` (main.js:128-176)
-- Bonfire position affects character placement (relative positioning)
-- Trees avoid bonfire radius (line 158-169)
+1. Find `// === SCENE GENERATION ===` section
+2. Modify positions in `initScene()` function
+3. Note: Bonfire position affects character placement (relative positioning)
+4. Note: Trees avoid bonfire radius check
 
 ### Update Auto-reload Frequency
-- Edit `VERSION_CHECK_INTERVAL` (main.js:8)
-- Default: 2000ms (2 seconds)
+1. Find `// === AUTO-RELOAD SYSTEM ===` section
+2. Edit `VERSION_CHECK_INTERVAL` constant
+3. Default: 2000ms (2 seconds)
 
 ## Deployment
 
