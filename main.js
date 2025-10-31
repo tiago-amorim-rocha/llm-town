@@ -75,18 +75,18 @@ function initScene() {
   // Clear existing entities
   entities = [];
 
-  // Calculate character height (1/30 of screen - 2x smaller)
-  const characterHeight = height / 30;
+  // Calculate character height (1/20 of screen - 1.33x smaller than original)
+  const characterHeight = height / 20;
   const characterScale = characterHeight / 50; // Base character height is ~50px
 
   // Place bonfire in lower-center area
   const bonfireX = width * 0.5;
   const bonfireY = height * 0.65;
-  entities.push(new Entity('bonfire', bonfireX, bonfireY, 0.6)); // 1.2 / 2
+  entities.push(new Entity('bonfire', bonfireX, bonfireY, 0.9)); // 0.6 * 1.5
 
   // Place character beside bonfire (to the right)
-  const characterX = bonfireX + 25; // 50 / 2
-  const characterY = bonfireY + 5; // 10 / 2
+  const characterX = bonfireX + 37.5; // 25 * 1.5
+  const characterY = bonfireY + 7.5; // 5 * 1.5
   entities.push(new Entity('character', characterX, characterY, characterScale));
 
   // Generate random trees (15-25 trees - more trees)
@@ -94,11 +94,11 @@ function initScene() {
   for (let i = 0; i < treeCount; i++) {
     const x = Math.random() * width;
     const y = Math.random() * height * 0.8; // Keep in upper 80%
-    const scale = 0.4 + Math.random() * 0.4; // Scale between 0.4-0.8 (2x smaller)
+    const scale = 0.6 + Math.random() * 0.6; // Scale between 0.6-1.2 (1.5x larger than before)
 
     // Avoid placing too close to bonfire area
     const distToBonfire = Math.sqrt((x - bonfireX) ** 2 + (y - bonfireY) ** 2);
-    if (distToBonfire > 50) { // 100 / 2
+    if (distToBonfire > 75) { // 50 * 1.5
       entities.push(new Entity('tree', x, y, scale));
     }
   }
@@ -108,7 +108,7 @@ function initScene() {
   for (let i = 0; i < grassCount; i++) {
     const x = Math.random() * width;
     const y = Math.random() * height;
-    const scale = 0.3 + Math.random() * 0.4; // Scale between 0.3-0.7 (2x smaller)
+    const scale = 0.45 + Math.random() * 0.6; // Scale between 0.45-1.05 (1.5x larger than before)
     entities.push(new Entity('grass', x, y, scale));
   }
 
