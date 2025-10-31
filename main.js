@@ -140,39 +140,98 @@ let characterEntity = null; // Reference to the character entity
 // DAY/NIGHT CYCLE
 // ============================================================
 
-// Day/night configuration
-const DAY_NIGHT_CYCLE_DURATION = 30000; // Full cycle in milliseconds (30 seconds for testing)
+// Day/night configuration - 60 second cycle
+const DAY_DURATION = 20000; // 20 seconds
+const DUSK_DURATION = 10000; // 10 seconds
+const NIGHT_DURATION = 20000; // 20 seconds
+const DAWN_DURATION = 10000; // 10 seconds
+const DAY_NIGHT_CYCLE_DURATION = DAY_DURATION + DUSK_DURATION + NIGHT_DURATION + DAWN_DURATION; // 60s total
+
 const DAY_VISIBILITY_RADIUS = 300; // Large visibility during day
 const NIGHT_VISIBILITY_RADIUS = 120; // Small visibility during night
 let cycleStartTime = Date.now();
 
-// Get current time of day (0 = midnight, 0.5 = noon, 1 = midnight)
-function getTimeOfDay() {
+// Ease-in-out function for smooth transitions
+function easeInOutCubic(t) {
+  return t < 0.5
+    ? 4 * t * t * t
+    : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+// Get current cycle state and progress
+function getCycleState() {
   const elapsed = Date.now() - cycleStartTime;
-  const progress = (elapsed % DAY_NIGHT_CYCLE_DURATION) / DAY_NIGHT_CYCLE_DURATION;
-  return progress;
+  const cycleTime = elapsed % DAY_NIGHT_CYCLE_DURATION;
+
+  if (cycleTime < DAY_DURATION) {
+    // Day: 0-20s
+    return { state: 'day', progress: cycleTime / DAY_DURATION };
+  } else if (cycleTime < DAY_DURATION + DUSK_DURATION) {
+    // Dusk: 20-30s
+    const duskTime = cycleTime - DAY_DURATION;
+    return { state: 'dusk', progress: duskTime / DUSK_DURATION };
+  } else if (cycleTime < DAY_DURATION + DUSK_DURATION + NIGHT_DURATION) {
+    // Night: 30-50s
+    const nightTime = cycleTime - DAY_DURATION - DUSK_DURATION;
+    return { state: 'night', progress: nightTime / NIGHT_DURATION };
+  } else {
+    // Dawn: 50-60s
+    const dawnTime = cycleTime - DAY_DURATION - DUSK_DURATION - NIGHT_DURATION;
+    return { state: 'dawn', progress: dawnTime / DAWN_DURATION };
+  }
 }
 
-// Check if it's currently day or night
-function isDaytime() {
-  const time = getTimeOfDay();
-  return time >= 0.25 && time < 0.75; // Day from 6am to 6pm
-}
-
-// Get current visibility radius based on time of day
+// Get current visibility radius based on cycle state
 function getVisibilityRadius() {
-  const time = getTimeOfDay();
-  // Smooth transition between day and night
-  const dayProgress = Math.sin(time * Math.PI * 2) * 0.5 + 0.5;
-  return NIGHT_VISIBILITY_RADIUS + (DAY_VISIBILITY_RADIUS - NIGHT_VISIBILITY_RADIUS) * dayProgress;
+  const { state, progress } = getCycleState();
+
+  switch (state) {
+    case 'day':
+      return DAY_VISIBILITY_RADIUS; // Full visibility
+
+    case 'dusk':
+      // Transition from day to night with ease-in-out
+      const duskProgress = easeInOutCubic(progress);
+      return DAY_VISIBILITY_RADIUS - (DAY_VISIBILITY_RADIUS - NIGHT_VISIBILITY_RADIUS) * duskProgress;
+
+    case 'night':
+      return NIGHT_VISIBILITY_RADIUS; // Minimal visibility
+
+    case 'dawn':
+      // Transition from night to day with ease-in-out
+      const dawnProgress = easeInOutCubic(progress);
+      return NIGHT_VISIBILITY_RADIUS + (DAY_VISIBILITY_RADIUS - NIGHT_VISIBILITY_RADIUS) * dawnProgress;
+
+    default:
+      return DAY_VISIBILITY_RADIUS;
+  }
 }
 
-// Get darkness overlay opacity based on time of day
+// Get darkness overlay opacity based on cycle state
 function getDarknessOpacity() {
-  const time = getTimeOfDay();
-  // Darker at night (0.0 = midnight, 0.5 = noon)
-  const darkness = Math.cos(time * Math.PI * 2) * 0.5 + 0.5;
-  return darkness * 0.6; // Max 60% darkness
+  const { state, progress } = getCycleState();
+  const maxDarkness = 0.6; // 60% opacity at night
+
+  switch (state) {
+    case 'day':
+      return 0; // No darkness during day
+
+    case 'dusk':
+      // Transition from light to dark with ease-in-out
+      const duskProgress = easeInOutCubic(progress);
+      return maxDarkness * duskProgress;
+
+    case 'night':
+      return maxDarkness; // Full darkness at night
+
+    case 'dawn':
+      // Transition from dark to light with ease-in-out
+      const dawnProgress = easeInOutCubic(progress);
+      return maxDarkness * (1 - dawnProgress);
+
+    default:
+      return 0;
+  }
 }
 
 // ============================================================
@@ -448,7 +507,8 @@ function init() {
   }, MOVEMENT_UPDATE_INTERVAL);
 
   console.log('🎮 Game loop started');
-  console.log(`🌞 Day/night cycle: ${DAY_NIGHT_CYCLE_DURATION / 1000}s`);
+  console.log(`🌞 Day/night cycle: ${DAY_NIGHT_CYCLE_DURATION / 1000}s total`);
+  console.log(`   Day: ${DAY_DURATION / 1000}s | Dusk: ${DUSK_DURATION / 1000}s | Night: ${NIGHT_DURATION / 1000}s | Dawn: ${DAWN_DURATION / 1000}s`);
   console.log(`👁️ Visibility: ${DAY_VISIBILITY_RADIUS}px (day) → ${NIGHT_VISIBILITY_RADIUS}px (night)`);
 
   // Handle window resize
