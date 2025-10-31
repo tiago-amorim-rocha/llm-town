@@ -148,15 +148,47 @@ function initScene() {
 
   // Generate random trees (15-25 trees - more trees)
   const treeCount = 15 + Math.floor(Math.random() * 11);
-  for (let i = 0; i < treeCount; i++) {
-    const x = Math.random() * width;
-    const y = Math.random() * height * 0.8; // Keep in upper 80%
-    const scale = 0.6 + Math.random() * 0.6; // Scale between 0.6-1.2 (1.5x larger than before)
+  const minHorizontalSpacing = 80; // Minimum horizontal distance between trees
+  const minVerticalSpacing = 150; // Larger vertical spacing
+  const maxAttempts = 50; // Max attempts to place each tree
 
-    // Avoid placing too close to bonfire area
-    const distToBonfire = Math.sqrt((x - bonfireX) ** 2 + (y - bonfireY) ** 2);
-    if (distToBonfire > 75) { // 50 * 1.5
-      entities.push(new Entity('tree', x, y, scale));
+  for (let i = 0; i < treeCount; i++) {
+    let placed = false;
+    let attempts = 0;
+
+    while (!placed && attempts < maxAttempts) {
+      const x = Math.random() * width;
+      const y = Math.random() * height * 0.8; // Keep in upper 80%
+      const scale = 0.6 + Math.random() * 0.6; // Scale between 0.6-1.2 (1.5x larger than before)
+
+      // Avoid placing too close to bonfire area
+      const distToBonfire = Math.sqrt((x - bonfireX) ** 2 + (y - bonfireY) ** 2);
+      if (distToBonfire <= 75) { // 50 * 1.5
+        attempts++;
+        continue;
+      }
+
+      // Check distance from other trees
+      let tooClose = false;
+      for (const entity of entities) {
+        if (entity.type === 'tree') {
+          const dx = Math.abs(x - entity.x);
+          const dy = Math.abs(y - entity.y);
+
+          // Check if too close using different thresholds for X and Y
+          if (dx < minHorizontalSpacing && dy < minVerticalSpacing) {
+            tooClose = true;
+            break;
+          }
+        }
+      }
+
+      if (!tooClose) {
+        entities.push(new Entity('tree', x, y, scale));
+        placed = true;
+      }
+
+      attempts++;
     }
   }
 
