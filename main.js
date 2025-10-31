@@ -74,18 +74,18 @@ function initScene() {
   // Clear existing entities
   entities = [];
 
-  // Calculate character height (1/15 of screen)
-  const characterHeight = height / 15;
+  // Calculate character height (1/45 of screen - 3x smaller)
+  const characterHeight = height / 45;
   const characterScale = characterHeight / 50; // Base character height is ~50px
 
   // Place bonfire in lower-center area
   const bonfireX = width * 0.5;
   const bonfireY = height * 0.65;
-  entities.push(new Entity('bonfire', bonfireX, bonfireY, 1.2));
+  entities.push(new Entity('bonfire', bonfireX, bonfireY, 0.4)); // 1.2 / 3
 
   // Place character beside bonfire (to the right)
-  const characterX = bonfireX + 50;
-  const characterY = bonfireY + 10;
+  const characterX = bonfireX + 17; // 50 / 3
+  const characterY = bonfireY + 3; // 10 / 3
   entities.push(new Entity('character', characterX, characterY, characterScale));
 
   // Generate random trees (5-8 trees)
@@ -93,11 +93,11 @@ function initScene() {
   for (let i = 0; i < treeCount; i++) {
     const x = Math.random() * width;
     const y = Math.random() * height * 0.8; // Keep in upper 80%
-    const scale = 0.8 + Math.random() * 0.8; // Scale between 0.8-1.6
+    const scale = 0.267 + Math.random() * 0.267; // Scale between 0.267-0.533 (3x smaller)
 
     // Avoid placing too close to bonfire area
     const distToBonfire = Math.sqrt((x - bonfireX) ** 2 + (y - bonfireY) ** 2);
-    if (distToBonfire > 100) {
+    if (distToBonfire > 33) { // 100 / 3
       entities.push(new Entity('tree', x, y, scale));
     }
   }
@@ -107,7 +107,7 @@ function initScene() {
   for (let i = 0; i < grassCount; i++) {
     const x = Math.random() * width;
     const y = Math.random() * height;
-    const scale = 0.6 + Math.random() * 0.8; // Scale between 0.6-1.4
+    const scale = 0.2 + Math.random() * 0.267; // Scale between 0.2-0.467 (3x smaller)
     entities.push(new Entity('grass', x, y, scale));
   }
 
