@@ -74,8 +74,8 @@ function initScene() {
   // Clear existing entities
   entities = [];
 
-  // Calculate character height (1/45 of screen - 3x smaller)
-  const characterHeight = height / 45;
+  // Calculate character height (1/22.5 of screen - 1.5x smaller than original)
+  const characterHeight = height / 22.5;
   const characterScale = characterHeight / 50; // Base character height is ~50px
 
   // Place bonfire in lower-center area
