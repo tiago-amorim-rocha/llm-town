@@ -4,6 +4,63 @@
 
 import * as debugConsole from './console.js';
 
+// Version checking configuration
+const VERSION_CHECK_INTERVAL = 2000; // Check every 2 seconds
+let initialVersion = window.__BUILD;
+let versionCheckCount = 0;
+
+// Version checking function
+async function checkForNewVersion() {
+  versionCheckCount++;
+
+  try {
+    const res = await fetch('./version.txt', { cache: 'no-store' });
+    if (!res.ok) {
+      if (versionCheckCount % 10 === 0) {
+        console.warn('Version check failed: Could not fetch version.txt');
+      }
+      return;
+    }
+
+    const currentVersion = (await res.text()).trim();
+
+    // Log every 10 checks for debugging
+    if (versionCheckCount % 10 === 0) {
+      console.log(`Version check #${versionCheckCount}: current=${currentVersion}, initial=${initialVersion}`);
+    }
+
+    // Check if version has changed
+    if (currentVersion !== initialVersion && initialVersion) {
+      console.log(`🔄 New version detected! Current: ${currentVersion}, Initial: ${initialVersion}`);
+      showReloadButton();
+    }
+  } catch (err) {
+    if (versionCheckCount % 10 === 0) {
+      console.warn('Version check error:', err.message);
+    }
+  }
+}
+
+// Show reload button
+function showReloadButton() {
+  const reloadButton = document.getElementById('reload-button');
+  if (reloadButton && !reloadButton.classList.contains('show')) {
+    reloadButton.classList.add('show');
+    console.log('✨ Reload button shown - new version available');
+  }
+}
+
+// Initialize reload button click handler
+function initReloadButton() {
+  const reloadButton = document.getElementById('reload-button');
+  if (reloadButton) {
+    reloadButton.addEventListener('click', () => {
+      console.log('🔄 Reloading application...');
+      window.location.reload(true);
+    });
+  }
+}
+
 // SVG Component Definitions
 const SVG_COMPONENTS = {
   tree: (scale = 1) => `
@@ -140,6 +197,11 @@ function init() {
   console.log('🚀 Application loaded!');
   console.log('📦 Build version:', window.__BUILD || 'unknown');
   console.log('✨ Initializing survival scene...');
+
+  // Initialize reload button and start version checking
+  initReloadButton();
+  setInterval(checkForNewVersion, VERSION_CHECK_INTERVAL);
+  console.log(`🔍 Version checking enabled (every ${VERSION_CHECK_INTERVAL / 1000}s)`);
 
   // Create canvas container
   canvas = document.createElement('div');
