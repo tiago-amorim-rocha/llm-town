@@ -1,26 +1,28 @@
 # LLM Town
 
 ---
-# ⚠️ CRITICAL: FIRST TIME SETUP ⚠️
+# ✅ AUTOMATED VERSION CONTROL ✅
 
-**If this is a new environment or session, RUN THIS IMMEDIATELY:**
+**Good news: version.txt updates are now AUTOMATED in the GitHub Actions workflow!**
+
+When you push to `claude/**` branches:
+1. GitHub Actions automatically updates `version.txt` with a timestamp
+2. Commits the change to your branch
+3. Merges to `main` and deploys
+
+**No manual setup required!** The cache busting system works out of the box.
+
+---
+
+### 🔧 Optional: Local Pre-commit Hook
+
+For direct commits to `main` (rare), you can optionally install a local hook:
 
 ```bash
 ./install-hooks.sh
 ```
 
-**Why this matters:**
-- Git hooks config is NOT tracked by git (lives in `.git/config`)
-- Without this, `version.txt` won't auto-update on commits
-- Users won't get notified of new deployments (broken cache busting)
-- **This is the #1 issue to watch for!**
-
-**What it does:**
-- Runs: `git config core.hooksPath .githooks`
-- Tells git to use tracked hooks from `.githooks/` directory
-- The pre-commit hook then auto-updates `version.txt` on every commit
-
-**For AI Assistants:** If you see version.txt not updating in commits, run `./install-hooks.sh` immediately before any commits!
+This is **not required** for the normal `claude/**` workflow, which handles versioning automatically.
 
 ---
 
@@ -33,8 +35,8 @@ A 2D survival scene visualization with procedurally generated trees, grass, a bo
 
 ### Making Changes
 1. **Edit code** - Main logic is in `main.js`
-2. **Commit** - Pre-commit hook auto-updates `version.txt` for cache busting
-3. **Push to `claude/**` branch** - Auto-promotes to `main` and deploys via GitHub Pages
+2. **Commit** - Commit your changes (version.txt will be handled by GitHub Actions)
+3. **Push to `claude/**` branch** - Workflow auto-updates `version.txt`, merges to `main`, and deploys
 
 ### Key Files
 - **`main.js`** - Scene rendering, entity system, tree/grass generation
@@ -90,29 +92,38 @@ Main scene setup in `initScene()`:
 
 ## Automated Systems
 
-### ⚙️ Pre-commit Hook (via .githooks)
-**How it works:**
-- Hook source is tracked in `.githooks/pre-commit` ✅ (in git)
-- Git config points to `.githooks/` via `core.hooksPath` ❌ (NOT in git)
-- Must run `./install-hooks.sh` to configure git after environment resets
-
-**What the hook does:**
-- Auto-updates `version.txt` with timestamp on every commit
-- Ensures cache busting works without manual edits
-- Runs automatically before each commit
-
-**Setup** (required once per environment):
-```bash
-./install-hooks.sh
-```
-
-This runs: `git config core.hooksPath .githooks`
-
-### ✅ Auto-promotion Workflow
+### ✅ Auto-promotion Workflow (with automatic versioning)
 **File**: `.github/workflows/autopromote.yml`
 **Trigger**: Push to any `claude/**` branch
-**Action**: Automatically merges to `main` branch
-**Result**: Deploys to GitHub Pages immediately
+
+**What it does:**
+1. **Updates version.txt** - Generates timestamp and commits to your branch
+2. **Merges to main** - Automatically merges your branch into `main`
+3. **Deploys** - GitHub Pages serves the new version immediately
+
+**Why this is great:**
+- ✅ No manual setup required
+- ✅ Works in any environment (immune to resets)
+- ✅ Can't be forgotten
+- ✅ Cache busting always works
+
+**Version update logic:**
+```bash
+# Generates millisecond timestamp
+date +%s%3N > version.txt
+# Commits and pushes to claude/** branch
+# Then merges to main
+```
+
+### ⚙️ Local Pre-commit Hook (optional backup)
+**File**: `.githooks/pre-commit` (tracked in git)
+**Purpose**: Updates `version.txt` for direct commits to `main`
+**Setup**: `./install-hooks.sh` (runs `git config core.hooksPath .githooks`)
+
+**When needed:**
+- Only for direct commits to `main` (bypassing `claude/**` workflow)
+- Not required for normal development workflow
+- Immune to being "lost" (hook file is tracked in git)
 
 ### ✅ Branch Cleanup
 **File**: `.github/workflows/cleanup-old-branches.yml`
@@ -206,18 +217,18 @@ s.src = `./main.js?v=${encodeURIComponent(version)}`;
 ```
 .
 ├── .github/workflows/
-│   ├── autopromote.yml           # Auto-merge claude/** → main
+│   ├── autopromote.yml           # Auto-merge claude/** → main + version.txt update
 │   └── cleanup-old-branches.yml  # Daily branch cleanup
 ├── .githooks/
-│   └── pre-commit                # Auto-updates version.txt (TRACKED IN GIT)
+│   └── pre-commit                # Optional: auto-updates version.txt locally
 ├── hooks/                        # Legacy - can be removed
 │   └── pre-commit                # Old hook location
-├── install-hooks.sh              # Run this: git config core.hooksPath .githooks
+├── install-hooks.sh              # Optional: git config core.hooksPath .githooks
 ├── index.html                    # Entry point + cache busting
 ├── main.js                       # Scene logic, entities, rendering
 ├── console.js                    # Debug console module
 ├── manifest.json                 # PWA configuration
 ├── icon-512.svg                  # App icon
-├── version.txt                   # Build version (auto-updated by hook)
+├── version.txt                   # Build version (auto-updated by GitHub Actions)
 └── CLAUDE.md                     # This file
 ```
