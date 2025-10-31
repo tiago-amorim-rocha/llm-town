@@ -17,6 +17,23 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: Update version.txt for cache busting
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          # Generate timestamp in milliseconds
+          TIMESTAMP=$(date +%s%3N)
+          echo "$TIMESTAMP" > version.txt
+
+          # Commit and push to claude/** branch if changed
+          if ! git diff --quiet version.txt; then
+            git add version.txt
+            git commit -m "auto: update version.txt to $TIMESTAMP"
+            git push origin "$BRANCH"
+            echo "✅ Updated version.txt to $TIMESTAMP"
+          else
+            echo "ℹ️ version.txt already up to date"
+          fi
       - name: Merge branch into main
         env:
           BRANCH: ${{ github.ref_name }}
