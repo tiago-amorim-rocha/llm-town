@@ -7,6 +7,12 @@ A 2D survival scene visualization with procedurally generated trees, grass, a bo
 
 ## Quick Reference
 
+### ⚠️ FIRST TIME SETUP (or if environment reset)
+```bash
+./install-hooks.sh
+```
+This installs the git hook that auto-updates `version.txt`. **Must be run once per environment.**
+
 ### Making Changes
 1. **Edit code** - Main logic is in `main.js`
 2. **Commit** - Pre-commit hook auto-updates `version.txt` for cache busting
@@ -66,11 +72,22 @@ Main scene setup in `initScene()`:
 
 ## Automated Systems
 
-### ✅ Pre-commit Hook (INSTALLED)
-**Location**: `.git/hooks/pre-commit`
+### ⚙️ Pre-commit Hook (REQUIRES INSTALLATION)
+**IMPORTANT**: Git hooks are NOT tracked by git. Run `./install-hooks.sh` to install.
+
+**Location**:
+- Source: `hooks/pre-commit` (tracked in repo)
+- Installed to: `.git/hooks/pre-commit` (NOT tracked, must be installed)
+
+**Installation**:
+```bash
+./install-hooks.sh
+```
+
 **Function**: Auto-updates `version.txt` with timestamp on every commit
-**Status**: Active and tested
 **Why**: Ensures cache busting works without manual version.txt edits
+
+**For AI Assistants**: If `version.txt` is not updating on commits, run `./install-hooks.sh` immediately. This may need to be done at the start of each session if the environment resets.
 
 ### ✅ Auto-promotion Workflow
 **File**: `.github/workflows/autopromote.yml`
