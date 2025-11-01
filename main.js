@@ -23,26 +23,16 @@ async function checkForNewVersion() {
   try {
     const res = await fetch('./version.txt', { cache: 'no-store' });
     if (!res.ok) {
-      if (versionCheckCount % 10 === 0) {
-        console.warn('Version check failed: Could not fetch version.txt');
-      }
       return;
     }
 
     const currentVersion = (await res.text()).trim();
 
-    if (versionCheckCount % 10 === 0) {
-      console.log(`Version check #${versionCheckCount}: current=${currentVersion}, initial=${initialVersion}`);
-    }
-
     if (currentVersion !== initialVersion && initialVersion) {
-      console.log(`🔄 New version detected! Current: ${currentVersion}, Initial: ${initialVersion}`);
       showReloadButton();
     }
   } catch (err) {
-    if (versionCheckCount % 10 === 0) {
-      console.warn('Version check error:', err.message);
-    }
+    // Silent failure
   }
 }
 
@@ -50,7 +40,6 @@ function showReloadButton() {
   const reloadButton = document.getElementById('reload-button');
   if (reloadButton && !reloadButton.classList.contains('show')) {
     reloadButton.classList.add('show');
-    console.log('✨ Reload button shown - new version available');
   }
 }
 
@@ -58,7 +47,6 @@ function initReloadButton() {
   const reloadButton = document.getElementById('reload-button');
   if (reloadButton) {
     reloadButton.addEventListener('click', () => {
-      console.log('🔄 Reloading application...');
       window.location.reload(true);
     });
   }
@@ -284,7 +272,10 @@ function initScene() {
 // GAME LOOP
 // ============================================================
 
-function gameLoop() {
+let frameCount = 0;
+let lastDebugTime = performance.now();
+
+function gameLoop(timestamp) {
   const { isCollecting } = getCollectionState();
 
   updateEntityPosition(characterEntity, isCollecting);
@@ -295,6 +286,17 @@ function gameLoop() {
 
   updateVisibility(entities);
   render(canvas, entities, SVG_COMPONENTS, getCharacterSVG, characterEntity);
+
+  // Debug FPS every 60 frames
+  frameCount++;
+  if (frameCount >= 60) {
+    const now = performance.now();
+    const elapsed = now - lastDebugTime;
+    const fps = (frameCount / elapsed) * 1000;
+    console.log(`Game Loop FPS: ${fps.toFixed(2)} | Frame time: ${(elapsed / frameCount).toFixed(2)}ms`);
+    frameCount = 0;
+    lastDebugTime = now;
+  }
 
   // Request next frame (runs at monitor refresh rate, typically 60fps)
   requestAnimationFrame(gameLoop);

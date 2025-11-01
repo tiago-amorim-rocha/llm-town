@@ -11,8 +11,13 @@ let lastFrameTime = performance.now();
 let fps = 60;
 const fpsSmoothing = 0.9; // Higher = smoother but slower to update
 
+let renderCallCount = 0;
+let lastRenderDebug = performance.now();
+
 export function render(canvas, entities, SVG_COMPONENTS, getCharacterSVG, characterEntity) {
   if (!canvas) return;
+
+  const renderStart = performance.now();
 
   // Calculate FPS
   const now = performance.now();
@@ -20,6 +25,17 @@ export function render(canvas, entities, SVG_COMPONENTS, getCharacterSVG, charac
   lastFrameTime = now;
   const currentFps = 1000 / delta;
   fps = fps * fpsSmoothing + currentFps * (1 - fpsSmoothing); // Smooth FPS
+
+  // Debug render timing
+  renderCallCount++;
+  if (renderCallCount >= 60) {
+    const debugNow = performance.now();
+    const debugElapsed = debugNow - lastRenderDebug;
+    const renderFps = (renderCallCount / debugElapsed) * 1000;
+    console.log(`Render FPS: ${renderFps.toFixed(2)} | Delta: ${delta.toFixed(2)}ms | Smoothed FPS shown: ${Math.round(fps)}`);
+    renderCallCount = 0;
+    lastRenderDebug = debugNow;
+  }
 
   const width = window.innerWidth;
   const height = window.innerHeight;
