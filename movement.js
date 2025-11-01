@@ -20,7 +20,7 @@ export function initMovementState(entity) {
 }
 
 // Update entity position (simple wandering behavior)
-export function updateEntityPosition(entity, isCollecting = false) {
+export function updateEntityPosition(entity, isCollecting = false, deltaTime = 1/60) {
   if (!entity) return;
 
   // If currently collecting, don't move
@@ -34,7 +34,8 @@ export function updateEntityPosition(entity, isCollecting = false) {
   }
   const state = entityMovementState.get(entity);
 
-  const currentSpeed = MOVEMENT_SPEED;
+  // Use time-based movement
+  const currentSpeed = MOVEMENT_SPEED * deltaTime;
 
   // Change direction periodically
   if (Date.now() - state.lastDirectionChange > DIRECTION_CHANGE_INTERVAL) {
@@ -42,7 +43,7 @@ export function updateEntityPosition(entity, isCollecting = false) {
     state.lastDirectionChange = Date.now();
   }
 
-  // Update position
+  // Update position using time-based speed
   const newX = entity.x + state.currentDirection.x * currentSpeed;
   const newY = entity.y + state.currentDirection.y * currentSpeed;
 
