@@ -395,7 +395,7 @@ function getDirectionToTarget(targetX, targetY) {
 }
 
 // Start move-to mode with a target
-function startMoveToMode(target) {
+function startMoveToMode(target, shouldRun = null) {
   if (!target) {
     console.log('🔍 No visible objects, entering search mode');
     startSearchMode();
@@ -404,9 +404,15 @@ function startMoveToMode(target) {
 
   movementMode = 'move-to';
   moveToTarget = target;
-  isRunning = Math.random() > 0.5; // 50% chance to run
 
-  console.log(`🎯 Moving to ${target.type} at (${target.x.toFixed(1)}, ${target.y.toFixed(1)})${isRunning ? ' [RUNNING]' : ''}`);
+  // If shouldRun is explicitly set, use it; otherwise random 50% chance
+  if (shouldRun !== null) {
+    isRunning = shouldRun;
+  } else {
+    isRunning = Math.random() > 0.5;
+  }
+
+  console.log(`🎯 Moving to ${target.type} at (${target.x.toFixed(1)}, ${target.y.toFixed(1)})${isRunning ? ' [RUNNING 🏃]' : ' [WALKING 🚶]'}`);
 }
 
 // Start search mode
@@ -435,7 +441,8 @@ function updateCharacterPosition() {
       // Reset cycle and start move-to mode
       moveToCount = 0;
       const target = getRandomVisibleObject();
-      startMoveToMode(target);
+      // Start first cycle with walking (false)
+      startMoveToMode(target, false);
       return;
     }
 
@@ -494,8 +501,10 @@ function updateCharacterPosition() {
         startSearchMode();
       } else {
         // Move to next target
+        // Test cycle pattern: Walk → Run → Walk
+        const shouldRun = (moveToCount === 1); // Run on the 2nd cycle (index 1)
         const target = getRandomVisibleObject();
-        startMoveToMode(target);
+        startMoveToMode(target, shouldRun);
       }
       return;
     }
@@ -679,12 +688,13 @@ function initScene() {
 
 // Initialize the movement test cycle
 function initMovementTestCycle() {
-  // Start with the first move-to cycle
+  // Start with the first move-to cycle (walking)
   moveToCount = 0;
   const target = getRandomVisibleObject();
 
   if (target) {
-    startMoveToMode(target);
+    // Start first cycle with walking (false)
+    startMoveToMode(target, false);
   } else {
     // No visible objects, start in search mode
     startSearchMode();
