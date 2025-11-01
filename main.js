@@ -3,13 +3,14 @@
 // Pre-commit hook now configured for automatic version.txt updates
 
 import * as debugConsole from './console.js';
+import * as config from './config.js';
 
 // ============================================================
 // AUTO-RELOAD SYSTEM
 // ============================================================
 
 // Version checking configuration
-const VERSION_CHECK_INTERVAL = 2000; // Check every 2 seconds
+const VERSION_CHECK_INTERVAL = config.VERSION_CHECK_INTERVAL;
 let initialVersion = window.__BUILD;
 let versionCheckCount = 0;
 
@@ -140,15 +141,15 @@ let characterEntity = null; // Reference to the character entity
 // DAY/NIGHT CYCLE
 // ============================================================
 
-// Day/night configuration - 60 second cycle
-const DAY_DURATION = 20000; // 20 seconds
-const DUSK_DURATION = 10000; // 10 seconds
-const NIGHT_DURATION = 20000; // 20 seconds
-const DAWN_DURATION = 10000; // 10 seconds
-const DAY_NIGHT_CYCLE_DURATION = DAY_DURATION + DUSK_DURATION + NIGHT_DURATION + DAWN_DURATION; // 60s total
+// Day/night configuration - imported from config.js
+const DAY_DURATION = config.DAY_DURATION;
+const DUSK_DURATION = config.DUSK_DURATION;
+const NIGHT_DURATION = config.NIGHT_DURATION;
+const DAWN_DURATION = config.DAWN_DURATION;
+const DAY_NIGHT_CYCLE_DURATION = config.DAY_NIGHT_CYCLE_DURATION;
 
-const DAY_VISIBILITY_RADIUS = 300; // Large visibility during day
-const NIGHT_VISIBILITY_RADIUS = 120; // Small visibility during night
+const DAY_VISIBILITY_RADIUS = config.DAY_VISIBILITY_RADIUS;   // Halved visibility
+const NIGHT_VISIBILITY_RADIUS = config.NIGHT_VISIBILITY_RADIUS; // Halved visibility
 let cycleStartTime = Date.now();
 
 // Ease-in-out function for smooth transitions
@@ -210,7 +211,7 @@ function getVisibilityRadius() {
 // Get darkness overlay opacity based on cycle state
 function getDarknessOpacity() {
   const { state, progress } = getCycleState();
-  const maxDarkness = 0.6; // 60% opacity at night
+  const maxDarkness = config.MAX_DARKNESS_OPACITY; // Reduced for better visibility
 
   switch (state) {
     case 'day':
@@ -280,10 +281,10 @@ function updateVisibility() {
 // CHARACTER MOVEMENT
 // ============================================================
 
-// Movement configuration
-const MOVEMENT_SPEED = 1.5; // Pixels per frame
-const DIRECTION_CHANGE_INTERVAL = 2000; // Change direction every 2 seconds
-const MOVEMENT_UPDATE_INTERVAL = 1000 / 30; // 30 fps movement updates
+// Movement configuration - imported from config.js
+const MOVEMENT_SPEED = config.MOVEMENT_SPEED;
+const DIRECTION_CHANGE_INTERVAL = config.DIRECTION_CHANGE_INTERVAL;
+const MOVEMENT_UPDATE_INTERVAL = config.MOVEMENT_UPDATE_INTERVAL;
 
 let currentDirection = { x: 0, y: 0 };
 let lastDirectionChange = Date.now();
@@ -359,11 +360,11 @@ function initScene() {
   entities.push(characterEntity);
 
   // --- Tree Placement ---
-  // Generate random trees (15-25 trees) with spacing enforcement
-  const treeCount = 15 + Math.floor(Math.random() * 11);
-  const minHorizontalSpacing = 80; // Minimum horizontal distance between trees
-  const minVerticalSpacing = 150; // Larger vertical spacing
-  const maxAttempts = 50; // Max attempts to place each tree
+  // Generate random trees with spacing enforcement - config values
+  const treeCount = config.TREE_COUNT_MIN + Math.floor(Math.random() * (config.TREE_COUNT_MAX - config.TREE_COUNT_MIN + 1));
+  const minHorizontalSpacing = config.MIN_HORIZONTAL_SPACING;
+  const minVerticalSpacing = config.MIN_VERTICAL_SPACING;
+  const maxAttempts = config.MAX_PLACEMENT_ATTEMPTS;
 
   for (let i = 0; i < treeCount; i++) {
     let placed = false;
@@ -376,7 +377,7 @@ function initScene() {
 
       // Avoid placing too close to bonfire area
       const distToBonfire = Math.sqrt((x - bonfireX) ** 2 + (y - bonfireY) ** 2);
-      if (distToBonfire <= 75) { // 50 * 1.5
+      if (distToBonfire <= config.BONFIRE_EXCLUSION_RADIUS) {
         attempts++;
         continue;
       }
@@ -406,8 +407,8 @@ function initScene() {
   }
 
   // --- Grass Placement ---
-  // Generate random grass patches (10-15)
-  const grassCount = 10 + Math.floor(Math.random() * 6);
+  // Generate random grass patches - config values
+  const grassCount = config.GRASS_COUNT_MIN + Math.floor(Math.random() * (config.GRASS_COUNT_MAX - config.GRASS_COUNT_MIN + 1));
   for (let i = 0; i < grassCount; i++) {
     const x = Math.random() * width;
     const y = Math.random() * height;
@@ -459,7 +460,7 @@ function render() {
   canvas.innerHTML = `
     <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
       <!-- Background -->
-      <rect width="100%" height="100%" fill="#1a3d1a"/>
+      <rect width="100%" height="100%" fill="${config.BACKGROUND_COLOR}"/>
 
       <!-- Entities -->
       ${visibleEntitySVG}
