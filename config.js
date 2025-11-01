@@ -71,6 +71,7 @@ export const GRASS_COUNT_MAX = 20;
 // COLLECTION SETTINGS
 // ============================================================
 
+export const COLLECTION_RANGE = 50;          // Maximum distance to collect items (pixels)
 export const APPLE_COLLECTION_TIME = 3000;   // Time to collect apple in milliseconds (3 seconds)
 export const BERRY_COLLECTION_TIME = 2500;   // Time to collect berries in milliseconds (2.5 seconds)
 export const MAX_INVENTORY_SIZE = 2;         // Maximum items character can carry
