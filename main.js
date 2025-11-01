@@ -159,7 +159,50 @@ async function loadSVGComponents() {
   });
 
   await Promise.all(loadPromises);
+
+  // Add programmatic components for ground items
+  SVG_COMPONENTS['ground-apple'] = (scale = 1) => {
+    return `<g transform="scale(${scale})">
+      <circle cx="0" cy="0" r="4.5" fill="#DC143C"/>
+    </g>`;
+  };
+
+  SVG_COMPONENTS['ground-berry'] = (scale = 1) => {
+    // One "berry" item is represented by 3 small berries clustered together
+    return `<g transform="scale(${scale})">
+      <circle cx="-3" cy="0" r="3.6" fill="#8B2252"/>
+      <circle cx="2" cy="-2" r="3.6" fill="#8B2252"/>
+      <circle cx="2" cy="2" r="3.6" fill="#8B2252"/>
+    </g>`;
+  };
+
   console.log('✅ All SVG assets loaded');
+}
+
+// Get character SVG with collection animation
+function getCharacterSVG(scale, state) {
+  // Get the base character SVG
+  const baseSVG = SVG_COMPONENTS['character'](scale, state);
+
+  // If not collecting, return base SVG
+  if (!isCollecting) {
+    return baseSVG;
+  }
+
+  // Add simple arm animation during collection
+  // Animation: arms move up slightly (simple bounce effect)
+  const armOffset = Math.sin(collectionAnimationProgress * Math.PI * 4) * 2; // Oscillates 0->2->0
+
+  // Parse the SVG to modify arm positions
+  // Left arm: x="-10" y="-15"
+  // Right arm: x="4" y="-15"
+  // We'll just add a transform to create a simple "reaching" animation
+  const animatedSVG = baseSVG.replace(
+    /<g transform="scale\(([^)]+)\)">/,
+    `<g transform="scale($1)"><g transform="translate(0, ${-armOffset})">`
+  ).replace(/<\/g>$/, '</g></g>');
+
+  return animatedSVG;
 }
 
 // ============================================================
@@ -176,7 +219,12 @@ class Entity {
   }
 
   render() {
-    const svg = SVG_COMPONENTS[this.type](this.scale, this.state);
+    let svg;
+    if (this.type === 'character') {
+      svg = getCharacterSVG(this.scale, this.state);
+    } else {
+      svg = SVG_COMPONENTS[this.type](this.scale, this.state);
+    }
     return `<g transform="translate(${this.x}, ${this.y})">${svg}</g>`;
   }
 }
@@ -186,6 +234,226 @@ let entities = [];
 let canvas = null;
 let characterEntity = null; // Reference to the character entity
 let wolfEntity = null; // Reference to the wolf entity
+
+// ============================================================
+// INVENTORY SYSTEM
+// ============================================================
+
+// Import inventory configuration
+const MAX_INVENTORY_SIZE = config.MAX_INVENTORY_SIZE;
+const APPLE_COLLECTION_TIME = config.APPLE_COLLECTION_TIME;
+const BERRY_COLLECTION_TIME = config.BERRY_COLLECTION_TIME;
+
+// Character inventory state
+let inventory = []; // Array of {type: 'apple' or 'berry', sourceEntity: Entity}
+
+// Collection state
+let isCollecting = false;
+let collectionStartTime = null;
+let collectionTarget = null;
+let collectionType = null; // 'apple' or 'berry'
+
+// Animation state
+let collectionAnimationProgress = 0; // 0 to 1
+
+// Helper functions for inventory
+function canCollectFrom(entity) {
+  if (inventory.length >= MAX_INVENTORY_SIZE) return false;
+  if (entity.type === 'tree' && entity.state > 0) return true; // Has apples
+  if (entity.type === 'grass' && entity.state > 0) return true; // Has berries
+  return false;
+}
+
+function startCollection(entity) {
+  if (isCollecting || !canCollectFrom(entity)) return false;
+
+  isCollecting = true;
+  collectionStartTime = Date.now();
+  collectionTarget = entity;
+
+  if (entity.type === 'tree') {
+    collectionType = 'apple';
+    console.log(`🍎 Started collecting apple (${APPLE_COLLECTION_TIME/1000}s)`);
+  } else if (entity.type === 'grass') {
+    collectionType = 'berry';
+    console.log(`🫐 Started collecting berries (${BERRY_COLLECTION_TIME/1000}s)`);
+  }
+
+  return true;
+}
+
+function updateCollection() {
+  if (!isCollecting) return;
+
+  const now = Date.now();
+  const collectionTime = collectionType === 'apple' ? APPLE_COLLECTION_TIME : BERRY_COLLECTION_TIME;
+  const elapsed = now - collectionStartTime;
+
+  // Update animation progress (0 to 1)
+  collectionAnimationProgress = Math.min(elapsed / collectionTime, 1);
+
+  // Check if collection is complete
+  if (elapsed >= collectionTime) {
+    completeCollection();
+  }
+}
+
+function completeCollection() {
+  if (!collectionTarget) return;
+
+  // Add item to inventory
+  inventory.push({
+    type: collectionType,
+    sourceEntity: collectionTarget
+  });
+
+  // Decrease state of source entity (remove one apple/berry)
+  collectionTarget.state = Math.max(0, collectionTarget.state - 1);
+
+  console.log(`✅ Collected ${collectionType}! Inventory: ${inventory.length}/${MAX_INVENTORY_SIZE}`);
+
+  // Reset collection state
+  isCollecting = false;
+  collectionStartTime = null;
+  collectionTarget = null;
+  collectionType = null;
+  collectionAnimationProgress = 0;
+
+  // Execute next action in sequence after a short delay
+  setTimeout(() => executeNextAction(), 500);
+}
+
+function dropItem(index) {
+  if (index < 0 || index >= inventory.length) return null;
+
+  const item = inventory.splice(index, 1)[0]; // Remove from inventory
+
+  // Create a ground entity at character's position (slightly offset to avoid overlap)
+  const offsetX = (Math.random() - 0.5) * 30;
+  const offsetY = (Math.random() - 0.5) * 30;
+
+  // Find a position that doesn't overlap with existing ground items
+  let dropX = characterEntity.x + offsetX;
+  let dropY = characterEntity.y + offsetY;
+
+  // Check for overlapping ground items
+  const groundItems = entities.filter(e => e.type === 'ground-apple' || e.type === 'ground-berry');
+  for (let attempt = 0; attempt < 10; attempt++) {
+    let overlapping = false;
+    for (const groundItem of groundItems) {
+      const dist = distance(dropX, dropY, groundItem.x, groundItem.y);
+      if (dist < 30) { // Minimum spacing of 30px
+        overlapping = true;
+        break;
+      }
+    }
+
+    if (!overlapping) break;
+
+    // Try a new position
+    dropX = characterEntity.x + (Math.random() - 0.5) * 60;
+    dropY = characterEntity.y + (Math.random() - 0.5) * 60;
+  }
+
+  const groundEntityType = item.type === 'apple' ? 'ground-apple' : 'ground-berry';
+  const groundEntity = new Entity(groundEntityType, dropX, dropY, 1, 1);
+  entities.push(groundEntity);
+
+  console.log(`📦 Dropped ${item.type} at (${dropX.toFixed(0)}, ${dropY.toFixed(0)})`);
+
+  return groundEntity;
+}
+
+// ============================================================
+// ACTION STATE MACHINE
+// ============================================================
+
+// Test state machine for automated actions
+let actionSequence = [];
+let currentActionIndex = 0;
+
+// Define action types
+const ACTION_TYPE = {
+  MOVE_TO: 'move-to',
+  COLLECT: 'collect',
+  DROP: 'drop',
+  WAIT: 'wait'
+};
+
+// Initialize test action sequence
+function initActionSequence() {
+  // Simple test sequence: collect items, then drop them
+  actionSequence = [
+    { type: ACTION_TYPE.MOVE_TO, targetType: 'tree' }, // Move to tree
+    { type: ACTION_TYPE.COLLECT },                      // Collect apple
+    { type: ACTION_TYPE.MOVE_TO, targetType: 'grass' }, // Move to grass
+    { type: ACTION_TYPE.COLLECT },                      // Collect berries
+    { type: ACTION_TYPE.WAIT, duration: 2000 },         // Wait 2 seconds
+    { type: ACTION_TYPE.DROP, itemIndex: 0 },           // Drop first item
+    { type: ACTION_TYPE.WAIT, duration: 1000 },         // Wait 1 second
+    { type: ACTION_TYPE.DROP, itemIndex: 0 },           // Drop second item (now at index 0)
+    { type: ACTION_TYPE.MOVE_TO, targetType: 'tree' }, // Move to tree again
+    { type: ACTION_TYPE.COLLECT },                      // Collect another apple
+  ];
+  currentActionIndex = 0;
+  console.log('🤖 Initialized action sequence with', actionSequence.length, 'actions');
+}
+
+// Get next action from sequence
+function getNextAction() {
+  if (currentActionIndex >= actionSequence.length) {
+    // Sequence complete, restart
+    currentActionIndex = 0;
+    console.log('🔄 Action sequence complete, restarting...');
+  }
+
+  const action = actionSequence[currentActionIndex];
+  currentActionIndex++;
+  return action;
+}
+
+// Execute the next action in sequence
+function executeNextAction() {
+  const action = getNextAction();
+  console.log(`🎬 Executing action ${currentActionIndex}/${actionSequence.length}:`, action.type);
+
+  switch (action.type) {
+    case ACTION_TYPE.MOVE_TO:
+      // Find a target of the specified type
+      const targets = entities.filter(e => e.type === action.targetType && visibleEntities.has(e));
+      if (targets.length > 0) {
+        const target = targets[Math.floor(Math.random() * targets.length)];
+        startMoveToMode(target, false);
+      } else {
+        console.log(`⚠️ No visible ${action.targetType} found, entering search mode`);
+        startSearchMode();
+      }
+      break;
+
+    case ACTION_TYPE.COLLECT:
+      // Collection is automatic when arriving at collectible target
+      // This action is a no-op, collection happens in arrival handler
+      console.log('📋 Collect action queued (will execute on arrival)');
+      break;
+
+    case ACTION_TYPE.DROP:
+      if (inventory.length > 0) {
+        const index = Math.min(action.itemIndex, inventory.length - 1);
+        dropItem(index);
+        // After dropping, execute next action after a short delay
+        setTimeout(() => executeNextAction(), 500);
+      } else {
+        console.log('⚠️ No items to drop, skipping');
+        executeNextAction();
+      }
+      break;
+
+    case ACTION_TYPE.WAIT:
+      console.log(`⏳ Waiting ${action.duration}ms...`);
+      setTimeout(() => executeNextAction(), action.duration);
+      break;
+  }
+}
 
 // ============================================================
 // DAY/NIGHT CYCLE
@@ -419,6 +687,11 @@ function startSearchMode() {
 function updateCharacterPosition() {
   if (!characterEntity) return;
 
+  // If currently collecting, don't move
+  if (isCollecting) {
+    return;
+  }
+
   const currentSpeed = MOVEMENT_SPEED * (isRunning ? RUN_SPEED_MULTIPLIER : 1);
 
   if (movementMode === 'search') {
@@ -482,18 +755,19 @@ function updateCharacterPosition() {
     // Check if arrived
     if (dist <= MOVE_TO_ARRIVAL_DISTANCE) {
       console.log(`✅ Arrived at ${moveToTarget.type}! (distance: ${dist.toFixed(1)}px)`);
-      moveToCount++;
 
-      if (moveToCount >= MOVE_TO_MAX_CYCLES) {
-        // Completed all cycles, enter search mode
-        startSearchMode();
-      } else {
-        // Move to next target
-        // Test cycle pattern: Walk → Run → Walk
-        const shouldRun = (moveToCount === 1); // Run on the 2nd cycle (index 1)
-        const target = getRandomVisibleObject();
-        startMoveToMode(target, shouldRun);
+      // Check if we can collect from this target
+      if (canCollectFrom(moveToTarget)) {
+        // Start collection action
+        if (startCollection(moveToTarget)) {
+          // Collection started, stay in move-to mode but don't move
+          // Collection will complete via updateCollection(), which will trigger next action
+          return;
+        }
       }
+
+      // If not collecting (can't collect or collection failed), execute next action
+      setTimeout(() => executeNextAction(), 500);
       return;
     }
 
@@ -668,25 +942,11 @@ function initScene() {
   // Initialize visibility
   updateVisibility();
 
-  // Initialize movement test cycle
-  initMovementTestCycle();
+  // Initialize action sequence and start first action
+  initActionSequence();
+  executeNextAction();
 
   render();
-}
-
-// Initialize the movement test cycle
-function initMovementTestCycle() {
-  // Start with the first move-to cycle (walking)
-  moveToCount = 0;
-  const target = getRandomVisibleObject();
-
-  if (target) {
-    // Start first cycle with walking (false)
-    startMoveToMode(target, false);
-  } else {
-    // No visible objects, start in search mode
-    startSearchMode();
-  }
 }
 
 // ============================================================
@@ -721,6 +981,29 @@ function render() {
     />
   ` : '';
 
+  // Render inventory items floating above character
+  let inventoryDisplay = '';
+  if (characterEntity && inventory.length > 0) {
+    inventory.forEach((item, index) => {
+      const offsetX = (index - (inventory.length - 1) / 2) * 15; // Space items horizontally
+      const offsetY = -45; // Float above character's head
+      const itemX = characterEntity.x + offsetX;
+      const itemY = characterEntity.y + offsetY;
+
+      if (item.type === 'apple') {
+        inventoryDisplay += `<g transform="translate(${itemX}, ${itemY})">
+          <circle cx="0" cy="0" r="4.5" fill="#DC143C"/>
+        </g>`;
+      } else if (item.type === 'berry') {
+        inventoryDisplay += `<g transform="translate(${itemX}, ${itemY})">
+          <circle cx="-3" cy="0" r="3" fill="#8B2252"/>
+          <circle cx="2" cy="-2" r="3" fill="#8B2252"/>
+          <circle cx="2" cy="2" r="3" fill="#8B2252"/>
+        </g>`;
+      }
+    });
+  }
+
   canvas.innerHTML = `
     <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
       <!-- Background -->
@@ -731,6 +1014,9 @@ function render() {
 
       <!-- Visibility circle -->
       ${visibilityCircle}
+
+      <!-- Inventory display -->
+      ${inventoryDisplay}
 
       <!-- Darkness overlay for night -->
       <rect width="100%" height="100%" fill="#000000" opacity="${darknessOpacity}" pointer-events="none"/>
@@ -770,6 +1056,7 @@ async function init() {
 
   // Start game loop for movement and visibility updates
   setInterval(() => {
+    updateCollection(); // Update collection progress
     updateCharacterPosition();
     updateWolfPosition();
     updateVisibility();
