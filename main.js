@@ -333,11 +333,21 @@ function updateVisibility() {
 
 // Movement configuration - imported from config.js
 const MOVEMENT_SPEED = config.MOVEMENT_SPEED;
+const RUN_SPEED_MULTIPLIER = config.RUN_SPEED_MULTIPLIER;
 const DIRECTION_CHANGE_INTERVAL = config.DIRECTION_CHANGE_INTERVAL;
 const MOVEMENT_UPDATE_INTERVAL = config.MOVEMENT_UPDATE_INTERVAL;
+const MOVE_TO_ARRIVAL_DISTANCE = config.MOVE_TO_ARRIVAL_DISTANCE;
+const MOVE_TO_MAX_CYCLES = config.MOVE_TO_MAX_CYCLES;
+const SEARCH_MODE_DURATION = config.SEARCH_MODE_DURATION;
 
+// Character movement state
 let currentDirection = { x: 0, y: 0 };
 let lastDirectionChange = Date.now();
+let movementMode = 'search'; // 'search' or 'move-to'
+let isRunning = false; // Running state
+let moveToTarget = null; // Target entity for move-to mode
+let moveToCount = 0; // Number of completed move-to cycles
+let searchModeStartTime = null; // When search mode started
 
 // Wolf movement state
 let wolfDirection = { x: 0, y: 0 };
@@ -352,35 +362,172 @@ function randomDirection() {
   };
 }
 
+// Get a random visible object (excluding character, bonfire, and wolf)
+function getRandomVisibleObject() {
+  const validTargets = Array.from(visibleEntities).filter(
+    entity => entity !== characterEntity &&
+              entity.type !== 'bonfire' &&
+              entity !== wolfEntity
+  );
+
+  if (validTargets.length === 0) {
+    return null;
+  }
+
+  const randomIndex = Math.floor(Math.random() * validTargets.length);
+  return validTargets[randomIndex];
+}
+
+// Calculate normalized direction towards target
+function getDirectionToTarget(targetX, targetY) {
+  const dx = targetX - characterEntity.x;
+  const dy = targetY - characterEntity.y;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+
+  if (distance === 0) {
+    return { x: 0, y: 0 };
+  }
+
+  return {
+    x: dx / distance,
+    y: dy / distance
+  };
+}
+
+// Start move-to mode with a target
+function startMoveToMode(target) {
+  if (!target) {
+    console.log('🔍 No visible objects, entering search mode');
+    startSearchMode();
+    return;
+  }
+
+  movementMode = 'move-to';
+  moveToTarget = target;
+  isRunning = Math.random() > 0.5; // 50% chance to run
+
+  console.log(`🎯 Moving to ${target.type} at (${target.x.toFixed(1)}, ${target.y.toFixed(1)})${isRunning ? ' [RUNNING]' : ''}`);
+}
+
+// Start search mode
+function startSearchMode() {
+  movementMode = 'search';
+  moveToTarget = null;
+  searchModeStartTime = Date.now();
+  isRunning = false;
+  currentDirection = randomDirection();
+  lastDirectionChange = Date.now();
+
+  console.log(`🔍 Entering search mode for ${SEARCH_MODE_DURATION / 1000} seconds`);
+}
+
 // Update character position
 function updateCharacterPosition() {
   if (!characterEntity) return;
 
-  // Change direction periodically
-  if (Date.now() - lastDirectionChange > DIRECTION_CHANGE_INTERVAL) {
-    currentDirection = randomDirection();
-    lastDirectionChange = Date.now();
-  }
+  const currentSpeed = MOVEMENT_SPEED * (isRunning ? RUN_SPEED_MULTIPLIER : 1);
 
-  // Update position
-  const newX = characterEntity.x + currentDirection.x * MOVEMENT_SPEED;
-  const newY = characterEntity.y + currentDirection.y * MOVEMENT_SPEED;
+  if (movementMode === 'search') {
+    // Search mode: random movement
 
-  // Keep within bounds with padding
-  const padding = 50;
-  const width = window.innerWidth;
-  const height = window.innerHeight;
+    // Check if search mode duration has elapsed
+    if (searchModeStartTime && Date.now() - searchModeStartTime >= SEARCH_MODE_DURATION) {
+      // Reset cycle and start move-to mode
+      moveToCount = 0;
+      const target = getRandomVisibleObject();
+      startMoveToMode(target);
+      return;
+    }
 
-  if (newX >= padding && newX <= width - padding) {
-    characterEntity.x = newX;
-  } else {
-    currentDirection.x *= -1; // Bounce off edge
-  }
+    // Change direction periodically
+    if (Date.now() - lastDirectionChange > DIRECTION_CHANGE_INTERVAL) {
+      currentDirection = randomDirection();
+      lastDirectionChange = Date.now();
+    }
 
-  if (newY >= padding && newY <= height - padding) {
-    characterEntity.y = newY;
-  } else {
-    currentDirection.y *= -1; // Bounce off edge
+    // Update position
+    const newX = characterEntity.x + currentDirection.x * currentSpeed;
+    const newY = characterEntity.y + currentDirection.y * currentSpeed;
+
+    // Keep within bounds with padding
+    const padding = 50;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    if (newX >= padding && newX <= width - padding) {
+      characterEntity.x = newX;
+    } else {
+      currentDirection.x *= -1; // Bounce off edge
+    }
+
+    if (newY >= padding && newY <= height - padding) {
+      characterEntity.y = newY;
+    } else {
+      currentDirection.y *= -1; // Bounce off edge
+    }
+  } else if (movementMode === 'move-to') {
+    // Move-to mode: move towards target
+
+    if (!moveToTarget) {
+      // No target, switch to search mode
+      startSearchMode();
+      return;
+    }
+
+    // Check if target is still visible
+    if (!visibleEntities.has(moveToTarget)) {
+      console.log(`❌ Target ${moveToTarget.type} is no longer visible, entering search mode`);
+      startSearchMode();
+      return;
+    }
+
+    // Calculate distance to target
+    const dist = distance(characterEntity.x, characterEntity.y, moveToTarget.x, moveToTarget.y);
+
+    // Check if arrived
+    if (dist <= MOVE_TO_ARRIVAL_DISTANCE) {
+      console.log(`✅ Arrived at ${moveToTarget.type}! (distance: ${dist.toFixed(1)}px)`);
+      moveToCount++;
+
+      if (moveToCount >= MOVE_TO_MAX_CYCLES) {
+        // Completed all cycles, enter search mode
+        startSearchMode();
+      } else {
+        // Move to next target
+        const target = getRandomVisibleObject();
+        startMoveToMode(target);
+      }
+      return;
+    }
+
+    // Move towards target
+    currentDirection = getDirectionToTarget(moveToTarget.x, moveToTarget.y);
+
+    const newX = characterEntity.x + currentDirection.x * currentSpeed;
+    const newY = characterEntity.y + currentDirection.y * currentSpeed;
+
+    // Keep within bounds with padding
+    const padding = 50;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    if (newX >= padding && newX <= width - padding) {
+      characterEntity.x = newX;
+    } else {
+      // Hit edge, enter search mode
+      console.log('🚧 Hit boundary, entering search mode');
+      startSearchMode();
+      return;
+    }
+
+    if (newY >= padding && newY <= height - padding) {
+      characterEntity.y = newY;
+    } else {
+      // Hit edge, enter search mode
+      console.log('🚧 Hit boundary, entering search mode');
+      startSearchMode();
+      return;
+    }
   }
 
   // Re-sort entities by Y position for proper depth ordering
@@ -524,7 +671,24 @@ function initScene() {
   // Initialize visibility
   updateVisibility();
 
+  // Initialize movement test cycle
+  initMovementTestCycle();
+
   render();
+}
+
+// Initialize the movement test cycle
+function initMovementTestCycle() {
+  // Start with the first move-to cycle
+  moveToCount = 0;
+  const target = getRandomVisibleObject();
+
+  if (target) {
+    startMoveToMode(target);
+  } else {
+    // No visible objects, start in search mode
+    startSearchMode();
+  }
 }
 
 // ============================================================
