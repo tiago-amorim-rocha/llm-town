@@ -111,6 +111,47 @@ const SVG_COMPONENTS = {
       <circle cx="-3" cy="-26" r="2" fill="#3d2817"/>
       <circle cx="3" cy="-26" r="2" fill="#3d2817"/>
     </g>
+  `,
+
+  wolf: (scale = 1) => `
+    <g transform="scale(${scale})">
+      <!-- Shadow -->
+      <ellipse cx="0" cy="5" rx="16" ry="10" fill="#000000" opacity="0.2"/>
+
+      <!-- Tail -->
+      <ellipse cx="0" cy="15" rx="5" ry="12" fill="#5a5a5a" opacity="0.9"/>
+      <ellipse cx="0" cy="18" rx="4" ry="8" fill="#6a6a6a" opacity="0.8"/>
+
+      <!-- Hind legs (paws) -->
+      <ellipse cx="-8" cy="8" rx="3.5" ry="4" fill="#4a4a4a"/>
+      <ellipse cx="8" cy="8" rx="3.5" ry="4" fill="#4a4a4a"/>
+
+      <!-- Body (main mass) -->
+      <ellipse cx="0" cy="0" rx="12" ry="18" fill="#6a6a6a" opacity="0.95"/>
+      <ellipse cx="0" cy="-2" rx="10" ry="15" fill="#7a7a7a" opacity="0.9"/>
+
+      <!-- Front legs (paws) -->
+      <ellipse cx="-8" cy="-8" rx="3.5" ry="4" fill="#4a4a4a"/>
+      <ellipse cx="8" cy="-8" rx="3.5" ry="4" fill="#4a4a4a"/>
+
+      <!-- Head -->
+      <ellipse cx="0" cy="-15" rx="9" ry="10" fill="#6a6a6a" opacity="0.95"/>
+      <ellipse cx="0" cy="-16" rx="7" ry="8" fill="#7a7a7a" opacity="0.9"/>
+
+      <!-- Ears (triangular) -->
+      <path d="M -5,-22 L -7,-26 L -3,-24 Z" fill="#5a5a5a"/>
+      <path d="M 5,-22 L 7,-26 L 3,-24 Z" fill="#5a5a5a"/>
+
+      <!-- Snout/nose area -->
+      <ellipse cx="0" cy="-18" rx="4" ry="5" fill="#8a8a8a" opacity="0.8"/>
+      <circle cx="0" cy="-20" r="2" fill="#2d2d2d"/>
+
+      <!-- Eyes -->
+      <circle cx="-3" cy="-17" r="1.5" fill="#ffd700" opacity="0.9"/>
+      <circle cx="3" cy="-17" r="1.5" fill="#ffd700" opacity="0.9"/>
+      <circle cx="-3" cy="-17" r="0.8" fill="#1a1a1a"/>
+      <circle cx="3" cy="-17" r="0.8" fill="#1a1a1a"/>
+    </g>
   `
 };
 
