@@ -405,19 +405,20 @@ const ACTION_TYPE = {
   MOVE_TO: 'move-to',
   COLLECT: 'collect',
   DROP: 'drop',
-  WAIT: 'wait'
+  WAIT: 'wait',
+  WANDER: 'wander'
 };
 
 // Initialize test action sequence
 function initActionSequence() {
-  // Simple test sequence: collect items, drop them, then pick them up again
+  // Test sequence: collect items, wander with full inventory, drop them, pick them up again
   // Note: Collection happens automatically on arrival at trees/grass/ground items
   actionSequence = [
     { type: ACTION_TYPE.MOVE_TO, targetType: 'tree' },  // Move to tree (auto-collects apple on arrival)
     { type: ACTION_TYPE.MOVE_TO, targetType: 'grass' }, // Move to grass (auto-collects berries on arrival)
-    { type: ACTION_TYPE.WAIT, duration: 2000 },         // Wait 2 seconds
+    { type: ACTION_TYPE.WANDER, duration: 5000 },       // Wander 5 seconds (inventory full)
     { type: ACTION_TYPE.DROP, itemIndex: 0 },           // Drop first item
-    { type: ACTION_TYPE.WAIT, duration: 1000 },         // Wait 1 second
+    { type: ACTION_TYPE.WANDER, duration: 5000 },       // Wander 5 more seconds
     { type: ACTION_TYPE.DROP, itemIndex: 0 },           // Drop second item (now at index 0)
     { type: ACTION_TYPE.WAIT, duration: 1500 },         // Wait 1.5 seconds
     { type: ACTION_TYPE.MOVE_TO, targetType: 'ground-apple' }, // Pick up dropped apple
@@ -484,6 +485,14 @@ function executeNextAction() {
 
     case ACTION_TYPE.WAIT:
       console.log(`⏳ Waiting ${action.duration}ms...`);
+      setTimeout(() => executeNextAction(), action.duration);
+      break;
+
+    case ACTION_TYPE.WANDER:
+      console.log(`🚶 Wandering for ${action.duration}ms...`);
+      // Enter search mode (wandering) for the specified duration
+      startSearchMode();
+      // After duration, execute next action
       setTimeout(() => executeNextAction(), action.duration);
       break;
   }
@@ -613,6 +622,24 @@ function updateVisibility() {
   for (const entity of entities) {
     if (isEntityVisible(entity)) {
       visibleEntities.add(entity);
+    }
+  }
+
+  // Check if we should retry a failed action now that visibility changed
+  if (retryCurrentAction && retryActionData && retryActionData.type === ACTION_TYPE.MOVE_TO) {
+    // Check if target type is now visible
+    const targets = entities.filter(e => e.type === retryActionData.targetType && visibleEntities.has(e));
+    if (targets.length > 0) {
+      console.log(`👀 Target ${retryActionData.targetType} now visible! Retrying action immediately.`);
+      // Clear retry flags
+      retryCurrentAction = false;
+      const actionToRetry = retryActionData;
+      retryActionData = null;
+      // Decrement action index to retry the same action
+      currentActionIndex--;
+      // Exit search mode and execute the action
+      movementMode = 'move-to'; // This will be set properly by executeNextAction
+      executeNextAction();
     }
   }
 }
