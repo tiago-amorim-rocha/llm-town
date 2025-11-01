@@ -42,15 +42,15 @@ export const BACKGROUND_COLOR = "#2a5d2a";  // Lighter green for better visibili
 // ============================================================
 
 export const MOVEMENT_SPEED = 1.5;              // Pixels per frame
-export const DIRECTION_CHANGE_INTERVAL = 2000;  // Change direction every 2 seconds
+export const DIRECTION_CHANGE_INTERVAL = 4000;  // Change direction every 2 seconds
 export const MOVEMENT_UPDATE_INTERVAL = 1000 / 30; // 30 fps movement updates
 
 // ============================================================
 // TREE GENERATION SETTINGS
 // ============================================================
 
-export const TREE_COUNT_MIN = 15;
-export const TREE_COUNT_MAX = 25;
+export const TREE_COUNT_MIN = 10;
+export const TREE_COUNT_MAX = 15;
 export const MIN_HORIZONTAL_SPACING = 80;   // Minimum horizontal distance between trees
 export const MIN_VERTICAL_SPACING = 150;    // Minimum vertical distance between trees
 export const MAX_PLACEMENT_ATTEMPTS = 50;   // Max attempts to place each tree
@@ -61,7 +61,7 @@ export const BONFIRE_EXCLUSION_RADIUS = 75; // Trees won't spawn within this rad
 // ============================================================
 
 export const GRASS_COUNT_MIN = 10;
-export const GRASS_COUNT_MAX = 15;
+export const GRASS_COUNT_MAX = 20;
 
 // ============================================================
 // VERSION CHECKING
