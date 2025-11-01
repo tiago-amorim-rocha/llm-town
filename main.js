@@ -261,7 +261,7 @@ function distance(x1, y1, x2, y2) {
 
 // Check if an entity is within visibility range of the character
 function isEntityVisible(entity) {
-  if (!characterEntity || entity === characterEntity || entity === wolfEntity) return true;
+  if (!characterEntity || entity === characterEntity) return true;
   const dist = distance(characterEntity.x, characterEntity.y, entity.x, entity.y);
   return dist <= getVisibilityRadius();
 }
