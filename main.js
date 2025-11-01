@@ -67,100 +67,63 @@ function initReloadButton() {
 }
 
 // ============================================================
-// SVG COMPONENTS
+// SVG COMPONENTS (Loaded from external files)
 // ============================================================
 
-const SVG_COMPONENTS = {
-  tree: (scale = 1) => `
-    <g transform="scale(${scale})">
-      <ellipse cx="0" cy="-30" rx="20" ry="25" fill="#1a4d2e" opacity="0.8"/>
-      <ellipse cx="-10" cy="-35" rx="18" ry="20" fill="#2d5f3f" opacity="0.9"/>
-      <ellipse cx="10" cy="-35" rx="18" ry="20" fill="#1f5234" opacity="0.9"/>
-      <rect x="-4" y="-10" width="8" height="15" fill="#3d2817"/>
-    </g>
-  `,
+// SVG components will be loaded from ./assets/ directory
+// This object will be populated by loadSVGComponents()
+const SVG_COMPONENTS = {};
 
-  grass: (scale = 1) => `
-    <g transform="scale(${scale})">
-      <path d="M -5,0 Q -6,-8 -5,-12" stroke="#3d6b3d" stroke-width="1.5" fill="none"/>
-      <path d="M 0,0 Q -1,-10 0,-14" stroke="#4a7c4a" stroke-width="1.5" fill="none"/>
-      <path d="M 5,0 Q 6,-7 5,-11" stroke="#3d6b3d" stroke-width="1.5" fill="none"/>
-    </g>
-  `,
-
-  bonfire: (scale = 1) => `
-    <g transform="scale(${scale})">
-      <ellipse cx="0" cy="5" rx="20" ry="8" fill="#2d2d2d" opacity="0.5"/>
-      <rect x="-12" y="-5" width="5" height="12" fill="#4a3728" transform="rotate(-15 -9.5 1)"/>
-      <rect x="7" y="-5" width="5" height="12" fill="#5a3d28" transform="rotate(15 9.5 1)"/>
-      <rect x="-4" y="-3" width="8" height="10" fill="#4a3728"/>
-      <path d="M 0,-10 Q -5,-20 -3,-28 Q -1,-22 0,-25 Q 1,-22 3,-28 Q 5,-20 0,-10" fill="#ff6b1a" opacity="0.9"/>
-      <path d="M 0,-12 Q -3,-18 -2,-23 Q -1,-19 0,-21 Q 1,-19 2,-23 Q 3,-18 0,-12" fill="#ffa51a" opacity="0.9"/>
-      <path d="M 0,-14 Q -2,-18 -1,-21 Q 0,-18 0,-19 Q 0,-18 1,-21 Q 2,-18 0,-14" fill="#ffdd1a" opacity="0.8"/>
-    </g>
-  `,
-
-  character: (scale = 1) => `
-    <g transform="scale(${scale})">
-      <circle cx="0" cy="-25" r="8" fill="#ffdbac"/>
-      <ellipse cx="0" cy="-15" rx="10" ry="12" fill="#5588dd"/>
-      <rect x="-10" y="-15" width="6" height="14" fill="#5588dd" rx="3"/>
-      <rect x="4" y="-15" width="6" height="14" fill="#5588dd" rx="3"/>
-      <rect x="-6" y="-3" width="5" height="12" fill="#4a4a4a" rx="2"/>
-      <rect x="1" y="-3" width="5" height="12" fill="#4a4a4a" rx="2"/>
-      <circle cx="-3" cy="-26" r="2" fill="#3d2817"/>
-      <circle cx="3" cy="-26" r="2" fill="#3d2817"/>
-    </g>
-  `,
-
-  wolf: (scale = 1) => `
-    <g transform="scale(${scale}) translate(-200, -190)">
-      <!-- Ground shadow -->
-      <ellipse cx="200" cy="270" rx="80" ry="12" fill="#8B7355" opacity="0.5"/>
-
-      <!-- Back leg -->
-      <rect x="240" y="200" width="18" height="60" fill="#696969" stroke="#4a4a4a" stroke-width="2" rx="3"/>
-      <ellipse cx="249" cy="265" rx="12" ry="8" fill="#505050" stroke="#4a4a4a" stroke-width="2"/>
-
-      <!-- Front leg -->
-      <rect x="170" y="200" width="18" height="60" fill="#696969" stroke="#4a4a4a" stroke-width="2" rx="3"/>
-      <ellipse cx="179" cy="265" rx="12" ry="8" fill="#505050" stroke="#4a4a4a" stroke-width="2"/>
-
-      <!-- Body -->
-      <ellipse cx="210" cy="180" rx="70" ry="45" fill="#808080" stroke="#4a4a4a" stroke-width="2"/>
-
-      <!-- Tail -->
-      <ellipse cx="280" cy="170" rx="35" ry="20" fill="#696969" stroke="#4a4a4a" stroke-width="2" transform="rotate(-20 280 170)"/>
-      <ellipse cx="300" cy="180" rx="25" ry="18" fill="#808080" stroke="#4a4a4a" stroke-width="2" transform="rotate(-35 300 180)"/>
-
-      <!-- Neck -->
-      <ellipse cx="155" cy="165" rx="25" ry="30" fill="#808080" stroke="#4a4a4a" stroke-width="2"/>
-
-      <!-- Head -->
-      <ellipse cx="130" cy="150" rx="35" ry="30" fill="#808080" stroke="#4a4a4a" stroke-width="2"/>
-
-      <!-- Snout -->
-      <ellipse cx="105" cy="155" rx="22" ry="15" fill="#696969" stroke="#4a4a4a" stroke-width="2"/>
-
-      <!-- Nose -->
-      <ellipse cx="92" cy="155" rx="8" ry="6" fill="#2C3E50" stroke="#1a252f" stroke-width="2"/>
-
-      <!-- Ear -->
-      <path d="M 125 130 L 115 105 L 135 120 Z" fill="#696969" stroke="#4a4a4a" stroke-width="2"/>
-
-      <!-- Eye -->
-      <circle cx="120" cy="145" r="5" fill="#2C3E50" stroke="#1a252f" stroke-width="1"/>
-      <circle cx="122" cy="143" r="2" fill="white"/>
-
-      <!-- Fur details on back -->
-      <path d="M 240 160 Q 245 150 250 160" fill="none" stroke="#4a4a4a" stroke-width="2"/>
-      <path d="M 255 155 Q 260 145 265 155" fill="none" stroke="#4a4a4a" stroke-width="2"/>
-
-      <!-- Belly highlight -->
-      <ellipse cx="200" cy="195" rx="40" ry="20" fill="#A9A9A9" opacity="0.6"/>
-    </g>
-  `
+// SVG asset definitions
+const SVG_ASSETS = {
+  tree: './assets/tree.svg',
+  grass: './assets/grass.svg',
+  bonfire: './assets/bonfire.svg',
+  character: './assets/character.svg',
+  wolf: './assets/wolf.svg'
 };
+
+// Load a single SVG file and return its content
+async function loadSVG(name, path) {
+  try {
+    const response = await fetch(path);
+    if (!response.ok) {
+      throw new Error(`Failed to load ${name}: ${response.statusText}`);
+    }
+    const svgText = await response.text();
+
+    // Parse the SVG to extract its inner content
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(svgText, 'image/svg+xml');
+    const svgElement = doc.querySelector('svg');
+
+    if (!svgElement) {
+      throw new Error(`Invalid SVG file: ${name}`);
+    }
+
+    // Get the inner content of the SVG (everything inside <svg>...</svg>)
+    const innerContent = svgElement.innerHTML;
+
+    // Return a function that wraps the content with scale transform
+    return (scale = 1) => `<g transform="scale(${scale})">${innerContent}</g>`;
+  } catch (error) {
+    console.error(`Error loading SVG ${name}:`, error);
+    // Return a placeholder function that shows an error
+    return (scale = 1) => `<g transform="scale(${scale})"><text x="0" y="0" fill="red" font-size="12">Error: ${name}</text></g>`;
+  }
+}
+
+// Load all SVG components
+async function loadSVGComponents() {
+  console.log('📦 Loading SVG assets...');
+  const loadPromises = Object.entries(SVG_ASSETS).map(async ([name, path]) => {
+    SVG_COMPONENTS[name] = await loadSVG(name, path);
+    console.log(`  ✓ Loaded ${name}.svg`);
+  });
+
+  await Promise.all(loadPromises);
+  console.log('✅ All SVG assets loaded');
+}
 
 // ============================================================
 // ENTITY SYSTEM
@@ -575,12 +538,16 @@ function render() {
 // INITIALIZATION
 // ============================================================
 
-function init() {
+async function init() {
   // Initialize debug console FIRST
   debugConsole.init();
 
   console.log('🚀 Application loaded!');
   console.log('📦 Build version:', window.__BUILD || 'unknown');
+
+  // Load SVG assets before initializing scene
+  await loadSVGComponents();
+
   console.log('✨ Initializing survival scene...');
 
   // Initialize reload button and start version checking
@@ -621,7 +588,7 @@ function init() {
 
 // Run initialization when DOM is ready
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
+  document.addEventListener('DOMContentLoaded', () => init());
 } else {
   init();
 }
