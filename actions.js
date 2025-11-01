@@ -196,6 +196,32 @@ function executeSearchFor(smartEntity, itemType, callback) {
   });
 }
 
+function executeMoveTo(smartEntity, target, arrivalDistance, callback) {
+  if (!target) {
+    callback({ success: false, reason: 'invalid_target' });
+    return;
+  }
+
+  // Allow calling without arrivalDistance (defaults to COLLECTION_RANGE)
+  if (typeof arrivalDistance === 'function') {
+    callback = arrivalDistance;
+    arrivalDistance = config.COLLECTION_RANGE;
+  }
+
+  console.log(`🎯 ${smartEntity.type} moving to ${target.type} at (${target.x.toFixed(0)}, ${target.y.toFixed(0)})...`);
+
+  // Set movement action state
+  smartEntity.currentMovementAction = 'moving_to';
+  smartEntity.movementActionData = {
+    target: target,
+    arrivalDistance: arrivalDistance,
+    callback: callback
+  };
+
+  // Note: The actual movement is handled by updateEntityPosition in movement.js
+  // The callback will be called when arrival distance is reached
+}
+
 function executeWander(smartEntity, duration, callback) {
   // If no duration specified, use random duration
   const wanderDuration = duration || (3000 + Math.random() * 4000); // 3-7 seconds default
@@ -249,6 +275,15 @@ export function injectActions(SmartEntityClass, entitiesGetter) {
       duration = null;
     }
     executeWander(this, duration, callback);
+  };
+
+  SmartEntityClass.prototype.moveTo = function(target, arrivalDistance, callback) {
+    // Allow calling with just target and callback (arrivalDistance optional)
+    if (typeof arrivalDistance === 'function') {
+      callback = arrivalDistance;
+      arrivalDistance = config.COLLECTION_RANGE;
+    }
+    executeMoveTo(this, target, arrivalDistance, callback);
   };
 
   SmartEntityClass.prototype.stopCurrentAction = function() {

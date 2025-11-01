@@ -37,8 +37,7 @@ export function updateEntityPosition(entity, isCollecting = false, deltaTime = 1
   if (entity.currentMovementAction === 'wandering') {
     applyWanderingMovement(entity, deltaTime);
   } else if (entity.currentMovementAction === 'moving_to') {
-    // Future: pathfinding to specific target
-    // applyMoveToMovement(entity, deltaTime);
+    applyMoveToMovement(entity, deltaTime);
   }
 }
 
@@ -78,6 +77,55 @@ function applyWanderingMovement(entity, deltaTime) {
     entity.y = newY;
   } else {
     state.currentDirection.y *= -1; // Bounce off edge
+  }
+}
+
+// Apply move-to-target movement behavior
+function applyMoveToMovement(entity, deltaTime) {
+  const targetData = entity.movementActionData.target;
+  if (!targetData) {
+    // No target, stop movement
+    entity.currentMovementAction = null;
+    return;
+  }
+
+  // Calculate direction to target
+  const dx = targetData.x - entity.x;
+  const dy = targetData.y - entity.y;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+
+  // Check if arrived
+  const arrivalDistance = entity.movementActionData.arrivalDistance || 50;
+  if (distance <= arrivalDistance) {
+    // Arrived! Stop and call callback if exists
+    entity.currentMovementAction = null;
+    if (entity.movementActionData.callback) {
+      entity.movementActionData.callback({ success: true, arrived: true });
+    }
+    entity.movementActionData = {};
+    return;
+  }
+
+  // Move towards target
+  const directionX = dx / distance; // Normalize
+  const directionY = dy / distance;
+
+  const currentSpeed = MOVEMENT_SPEED * deltaTime;
+
+  const newX = entity.x + directionX * currentSpeed;
+  const newY = entity.y + directionY * currentSpeed;
+
+  // Keep within bounds with padding
+  const padding = 50;
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+
+  if (newX >= padding && newX <= width - padding) {
+    entity.x = newX;
+  }
+
+  if (newY >= padding && newY <= height - padding) {
+    entity.y = newY;
   }
 }
 

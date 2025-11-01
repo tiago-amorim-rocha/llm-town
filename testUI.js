@@ -47,6 +47,10 @@ export function initTestUI(characterEntity, getEntities) {
       <button class="action-btn" data-action="wander-long" title="Wander 10s">🏃</button>
       <button class="action-btn" data-action="stop" title="Stop">🛑</button>
 
+      <!-- Go To -->
+      <button class="action-btn" data-action="goto-apple" title="Go to Apple Tree">🏃🍎</button>
+      <button class="action-btn" data-action="goto-berry" title="Go to Berry Bush">🏃🫐</button>
+
       <!-- Search -->
       <button class="action-btn" data-action="search-apple" title="Search Apple">🔍🍎</button>
       <button class="action-btn" data-action="search-berry" title="Search Berry">🔍🫐</button>
@@ -300,6 +304,38 @@ export function initTestUI(characterEntity, getEntities) {
     'stop': () => {
       characterEntity.stopCurrentAction();
       showStatus('🛑 Stopped');
+    },
+
+    'goto-apple': () => {
+      const target = findNearestWithItem('apple');
+      if (!target) {
+        showStatus('❌ No apples visible');
+        return;
+      }
+      showStatus(`🏃 Going to apple tree...`);
+      characterEntity.moveTo(target, (result) => {
+        if (result.success) {
+          showStatus('✅ Arrived at tree! 🍎');
+        } else {
+          showStatus(`❌ ${result.reason}`);
+        }
+      });
+    },
+
+    'goto-berry': () => {
+      const target = findNearestWithItem('berry');
+      if (!target) {
+        showStatus('❌ No berries visible');
+        return;
+      }
+      showStatus(`🏃 Going to berry bush...`);
+      characterEntity.moveTo(target, (result) => {
+        if (result.success) {
+          showStatus('✅ Arrived at bush! 🫐');
+        } else {
+          showStatus(`❌ ${result.reason}`);
+        }
+      });
     },
 
     'search-apple': () => {
