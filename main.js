@@ -177,6 +177,7 @@ class Entity {
 let entities = [];
 let canvas = null;
 let characterEntity = null; // Reference to the character entity
+let wolfEntity = null; // Reference to the wolf entity
 
 // ============================================================
 // DAY/NIGHT CYCLE
@@ -290,7 +291,7 @@ function distance(x1, y1, x2, y2) {
 
 // Check if an entity is within visibility range of the character
 function isEntityVisible(entity) {
-  if (!characterEntity || entity === characterEntity) return true;
+  if (!characterEntity || entity === characterEntity || entity === wolfEntity) return true;
   const dist = distance(characterEntity.x, characterEntity.y, entity.x, entity.y);
   return dist <= getVisibilityRadius();
 }
@@ -329,6 +330,10 @@ const MOVEMENT_UPDATE_INTERVAL = config.MOVEMENT_UPDATE_INTERVAL;
 
 let currentDirection = { x: 0, y: 0 };
 let lastDirectionChange = Date.now();
+
+// Wolf movement state
+let wolfDirection = { x: 0, y: 0 };
+let lastWolfDirectionChange = Date.now();
 
 // Generate random direction
 function randomDirection() {
@@ -374,6 +379,43 @@ function updateCharacterPosition() {
   entities.sort((a, b) => a.y - b.y);
 }
 
+// Update wolf position (moves 50% faster than character)
+function updateWolfPosition() {
+  if (!wolfEntity) return;
+
+  const wolfSpeed = MOVEMENT_SPEED * 1.5; // 50% faster than character
+
+  // Change direction periodically
+  if (Date.now() - lastWolfDirectionChange > DIRECTION_CHANGE_INTERVAL) {
+    wolfDirection = randomDirection();
+    lastWolfDirectionChange = Date.now();
+  }
+
+  // Update position
+  const newX = wolfEntity.x + wolfDirection.x * wolfSpeed;
+  const newY = wolfEntity.y + wolfDirection.y * wolfSpeed;
+
+  // Keep within bounds with padding
+  const padding = 50;
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+
+  if (newX >= padding && newX <= width - padding) {
+    wolfEntity.x = newX;
+  } else {
+    wolfDirection.x *= -1; // Bounce off edge
+  }
+
+  if (newY >= padding && newY <= height - padding) {
+    wolfEntity.y = newY;
+  } else {
+    wolfDirection.y *= -1; // Bounce off edge
+  }
+
+  // Re-sort entities by Y position for proper depth ordering
+  entities.sort((a, b) => a.y - b.y);
+}
+
 // ============================================================
 // SCENE GENERATION
 // ============================================================
@@ -399,6 +441,13 @@ function initScene() {
   const characterY = bonfireY + 7.5; // 5 * 1.5
   characterEntity = new Entity('character', characterX, characterY, characterScale);
   entities.push(characterEntity);
+
+  // Place wolf randomly in the forest
+  const wolfX = Math.random() * width;
+  const wolfY = Math.random() * height * 0.7; // Keep in upper 70% of screen
+  const wolfScale = characterScale * 1.2; // Slightly larger than character
+  wolfEntity = new Entity('wolf', wolfX, wolfY, wolfScale);
+  entities.push(wolfEntity);
 
   // --- Tree Placement ---
   // Generate random trees with spacing enforcement - config values
@@ -544,6 +593,7 @@ function init() {
   // Start game loop for movement and visibility updates
   setInterval(() => {
     updateCharacterPosition();
+    updateWolfPosition();
     updateVisibility();
     render();
   }, MOVEMENT_UPDATE_INTERVAL);
