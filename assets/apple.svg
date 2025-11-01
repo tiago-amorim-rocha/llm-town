@@ -1,0 +1,13 @@
+<svg viewBox="-15 -15 30 30" xmlns="http://www.w3.org/2000/svg">
+  <!-- Apple body (red) -->
+  <circle cx="0" cy="1" r="12" fill="#DC143C"/>
+
+  <!-- Highlight (lighter red) for depth -->
+  <ellipse cx="-3" cy="-2" rx="5" ry="6" fill="#FF6B6B" opacity="0.6"/>
+
+  <!-- Stem (brown) -->
+  <rect x="-1" y="-13" width="2" height="6" fill="#8B4513" rx="1"/>
+
+  <!-- Leaf (green) -->
+  <ellipse cx="3" cy="-11" rx="4" ry="2.5" fill="#228B22" transform="rotate(-30 3 -11)"/>
+</svg>
