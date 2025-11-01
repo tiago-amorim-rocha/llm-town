@@ -32,7 +32,7 @@ export const DAY_NIGHT_CYCLE_DURATION =
 
 // Maximum darkness opacity at night (0-1 range)
 // Lower values = brighter overall, more contrast between day/night
-export const MAX_DARKNESS_OPACITY = 0.4;  // Reduced from 0.6 for better visibility
+export const MAX_DARKNESS_OPACITY = 0.6;  // Reduced from 0.6 for better visibility
 
 // Background colors
 export const BACKGROUND_COLOR = "#2a5d2a";  // Lighter green for better visibility
