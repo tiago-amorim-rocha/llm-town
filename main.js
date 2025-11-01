@@ -8,6 +8,7 @@ import { injectActions, getCollectionState } from './actions.js';
 import { updateVisibility } from './visibility.js';
 import { updateEntityPosition, initMovementState, clearMovementState } from './movement.js';
 import { render } from './rendering.js';
+import { initTestUI } from './testUI.js';
 
 // ============================================================
 // AUTO-RELOAD SYSTEM
@@ -312,6 +313,9 @@ async function init() {
   document.body.appendChild(canvas);
 
   initScene();
+
+  // Initialize test UI
+  initTestUI(characterEntity, getEntities);
 
   // Start game loop using requestAnimationFrame for smooth 60fps
   requestAnimationFrame(gameLoop);
