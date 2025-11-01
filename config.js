@@ -41,7 +41,7 @@ export const BACKGROUND_COLOR = "#2a5d2a";  // Lighter green for better visibili
 // CHARACTER MOVEMENT SETTINGS
 // ============================================================
 
-export const MOVEMENT_SPEED = 1.5;              // Pixels per frame (base speed)
+export const MOVEMENT_SPEED = 90;               // Pixels per second (base speed)
 export const RUN_SPEED_MULTIPLIER = 2.0;        // Running doubles movement speed
 export const DIRECTION_CHANGE_INTERVAL = 4000;  // Change direction every 4 seconds (search mode)
 export const MOVEMENT_UPDATE_INTERVAL = 1000 / 60; // 60 fps visual updates (~16.67ms)
