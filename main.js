@@ -272,9 +272,6 @@ function initScene() {
 // GAME LOOP
 // ============================================================
 
-let frameCount = 0;
-let lastDebugTime = performance.now();
-
 function gameLoop(timestamp) {
   const { isCollecting } = getCollectionState();
 
@@ -286,17 +283,6 @@ function gameLoop(timestamp) {
 
   updateVisibility(entities);
   render(canvas, entities, SVG_COMPONENTS, getCharacterSVG, characterEntity);
-
-  // Debug FPS every 60 frames
-  frameCount++;
-  if (frameCount >= 60) {
-    const now = performance.now();
-    const elapsed = now - lastDebugTime;
-    const fps = (frameCount / elapsed) * 1000;
-    console.log(`Game Loop FPS: ${fps.toFixed(2)} | Frame time: ${(elapsed / frameCount).toFixed(2)}ms`);
-    frameCount = 0;
-    lastDebugTime = now;
-  }
 
   // Request next frame (runs at monitor refresh rate, typically 60fps)
   requestAnimationFrame(gameLoop);
