@@ -133,11 +133,24 @@ export class SmartEntity extends Entity {
     // Visibility and sensory system
     this.visibilityRadius = visibilityRadius; // Base visibility radius
     this.visibleEntities = new Set(); // Entities this entity can currently see
+    this.previousVisibleEntities = new Set(); // For tracking visibility changes
     this.isFriendly = isFriendly; // Whether this entity is part of player's tribe
+
+    // Event system for visibility changes
+    this.eventHandlers = {
+      entityVisible: [],
+      entityInvisible: []
+    };
+
+    // Movement action state
+    this.currentMovementAction = null; // 'wandering', 'moving_to', null
+    this.movementActionData = {}; // Data for current movement action
   }
 
   // Calculate what this entity can see
   updateVisibility(allEntities, currentCycleState) {
+    // Store previous visibility state
+    const previousVisible = new Set(this.visibleEntities);
     this.visibleEntities.clear();
 
     // Get visibility radius based on day/night cycle (only for this entity)
@@ -149,6 +162,21 @@ export class SmartEntity extends Entity {
       const dist = distance(this.x, this.y, entity.x, entity.y);
       if (dist <= radius) {
         this.visibleEntities.add(entity);
+      }
+    }
+
+    // Emit visibility events
+    // Check for newly visible entities
+    for (const entity of this.visibleEntities) {
+      if (!previousVisible.has(entity)) {
+        this._emit('entityVisible', entity);
+      }
+    }
+
+    // Check for entities that became invisible
+    for (const entity of previousVisible) {
+      if (!this.visibleEntities.has(entity)) {
+        this._emit('entityInvisible', entity);
       }
     }
   }
@@ -187,6 +215,35 @@ export class SmartEntity extends Entity {
   // Get all visible entities (sensory input for AI)
   getVisibleEntities() {
     return Array.from(this.visibleEntities);
+  }
+
+  // Event system methods
+  on(event, handler) {
+    if (!this.eventHandlers[event]) {
+      console.warn(`Unknown event type: ${event}`);
+      return;
+    }
+    this.eventHandlers[event].push(handler);
+  }
+
+  off(event, handler) {
+    if (!this.eventHandlers[event]) {
+      console.warn(`Unknown event type: ${event}`);
+      return;
+    }
+    const index = this.eventHandlers[event].indexOf(handler);
+    if (index > -1) {
+      this.eventHandlers[event].splice(index, 1);
+    }
+  }
+
+  _emit(event, data) {
+    if (!this.eventHandlers[event]) {
+      return;
+    }
+    for (const handler of this.eventHandlers[event]) {
+      handler(data);
+    }
   }
 
   render(SVG_COMPONENTS, getCharacterSVG = null) {

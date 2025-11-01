@@ -138,50 +138,85 @@ function executeSearchFor(smartEntity, itemType, callback) {
     return;
   }
 
-  // Start wandering and check periodically for the target
+  // Track search state
   const searchStartTime = Date.now();
   const searchDuration = config.SEARCH_MODE_DURATION;
+  let searchComplete = false;
 
-  const checkForTarget = () => {
-    const elapsed = Date.now() - searchStartTime;
-
-    // Find visible entities with the item (using THIS entity's visibility)
-    const targetsWithItem = Array.from(smartEntity.visibleEntities).filter(e =>
-      e.type === targetType && e.inventory && e.inventory.hasItem(itemType)
-    );
-
-    if (targetsWithItem.length > 0) {
-      // Found a target!
-      const target = targetsWithItem[0];
-      console.log(`✅ ${smartEntity.type} found ${itemType} at ${target.type} (${target.x.toFixed(0)}, ${target.y.toFixed(0)})`);
-      callback({ success: true, target: target });
-      return;
-    }
-
-    // Check if search duration elapsed
-    if (elapsed >= searchDuration) {
-      console.log(`⏰ ${smartEntity.type} search timeout: ${itemType} not found`);
-      callback({ success: false, reason: 'timeout' });
-      return;
-    }
-
-    // Continue searching
-    setTimeout(checkForTarget, 500);
+  // Helper to check if entity matches search criteria
+  const isTargetMatch = (entity) => {
+    return entity.type === targetType &&
+           entity.inventory &&
+           entity.inventory.hasItem(itemType);
   };
 
-  checkForTarget();
+  // Check if target is already visible
+  const alreadyVisible = Array.from(smartEntity.visibleEntities).find(isTargetMatch);
+  if (alreadyVisible) {
+    console.log(`✅ ${smartEntity.type} found ${itemType} immediately at ${alreadyVisible.type}`);
+    callback({ success: true, target: alreadyVisible });
+    return;
+  }
+
+  // Event handler for newly visible entities
+  const onEntityVisible = (entity) => {
+    if (searchComplete) return;
+
+    if (isTargetMatch(entity)) {
+      // Found the target!
+      searchComplete = true;
+      smartEntity.off('entityVisible', onEntityVisible);
+      smartEntity.stopCurrentAction(); // Stop wandering
+      console.log(`✅ ${smartEntity.type} found ${itemType} at ${entity.type} (${entity.x.toFixed(0)}, ${entity.y.toFixed(0)})`);
+      callback({ success: true, target: entity });
+    }
+  };
+
+  // Subscribe to visibility events
+  smartEntity.on('entityVisible', onEntityVisible);
+
+  // Start wandering to search
+  smartEntity.wander(searchDuration, (result) => {
+    if (searchComplete) return; // Already found target
+
+    // Wander duration complete without finding target
+    searchComplete = true;
+    smartEntity.off('entityVisible', onEntityVisible);
+    console.log(`⏰ ${smartEntity.type} search timeout: ${itemType} not found`);
+    callback({ success: false, reason: 'timeout' });
+  });
 }
 
-function executeWander(smartEntity, callback) {
-  console.log(`🚶 ${smartEntity.type} wandering...`);
+function executeWander(smartEntity, duration, callback) {
+  // If no duration specified, use random duration
+  const wanderDuration = duration || (3000 + Math.random() * 4000); // 3-7 seconds default
 
-  // Wander for a random duration
-  const wanderDuration = 3000 + Math.random() * 4000; // 3-7 seconds
+  console.log(`🚶 ${smartEntity.type} wandering for ${(wanderDuration / 1000).toFixed(1)}s...`);
 
-  setTimeout(() => {
-    console.log(`✅ ${smartEntity.type} finished wandering`);
-    callback({ success: true });
-  }, wanderDuration);
+  // Set movement action state
+  smartEntity.currentMovementAction = 'wandering';
+  smartEntity.movementActionData = {
+    startTime: Date.now(),
+    duration: wanderDuration
+  };
+
+  // Check completion using requestAnimationFrame for frame-accurate timing
+  const checkCompletion = () => {
+    const elapsed = Date.now() - smartEntity.movementActionData.startTime;
+
+    if (elapsed >= wanderDuration) {
+      // Wander complete - stop movement
+      smartEntity.currentMovementAction = null;
+      smartEntity.movementActionData = {};
+      console.log(`✅ ${smartEntity.type} finished wandering`);
+      callback({ success: true });
+    } else {
+      // Continue wandering
+      requestAnimationFrame(checkCompletion);
+    }
+  };
+
+  checkCompletion();
 }
 
 // Inject action methods into SmartEntity prototype
@@ -198,7 +233,18 @@ export function injectActions(SmartEntityClass, entitiesGetter) {
     executeSearchFor(this, itemType, callback);
   };
 
-  SmartEntityClass.prototype.wander = function(callback) {
-    executeWander(this, callback);
+  SmartEntityClass.prototype.wander = function(duration, callback) {
+    // Allow calling with just callback (duration optional)
+    if (typeof duration === 'function') {
+      callback = duration;
+      duration = null;
+    }
+    executeWander(this, duration, callback);
+  };
+
+  SmartEntityClass.prototype.stopCurrentAction = function() {
+    // Stop any current movement action
+    this.currentMovementAction = null;
+    this.movementActionData = {};
   };
 }

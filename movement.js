@@ -19,7 +19,7 @@ export function initMovementState(entity) {
   });
 }
 
-// Update entity position (simple wandering behavior)
+// Update entity position (action-driven movement)
 export function updateEntityPosition(entity, isCollecting = false, deltaTime = 1/60) {
   if (!entity) return;
 
@@ -28,6 +28,22 @@ export function updateEntityPosition(entity, isCollecting = false, deltaTime = 1
     return;
   }
 
+  // Only move if entity has an active movement action
+  if (!entity.currentMovementAction) {
+    return; // Stay still - default state is stationary
+  }
+
+  // Handle movement based on action type
+  if (entity.currentMovementAction === 'wandering') {
+    applyWanderingMovement(entity, deltaTime);
+  } else if (entity.currentMovementAction === 'moving_to') {
+    // Future: pathfinding to specific target
+    // applyMoveToMovement(entity, deltaTime);
+  }
+}
+
+// Apply wandering movement behavior
+function applyWanderingMovement(entity, deltaTime) {
   // Get or create movement state
   if (!entityMovementState.has(entity)) {
     initMovementState(entity);
