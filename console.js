@@ -57,6 +57,7 @@ function init() {
   const panel = document.getElementById('console-panel');
   output = document.getElementById('console-output');
   const clear = document.getElementById('console-clear');
+  const copy = document.getElementById('console-copy');
 
   // Toggle console visibility
   toggle.addEventListener('click', () => {
@@ -74,6 +75,24 @@ function init() {
   clear.addEventListener('click', () => {
     messages.length = 0;
     output.innerHTML = '';
+  });
+
+  // Copy all console messages to clipboard
+  copy.addEventListener('click', async () => {
+    const text = messages.map(msg => `[${msg.time}] ${msg.text}`).join('\n');
+    try {
+      await navigator.clipboard.writeText(text);
+      // Provide visual feedback
+      const originalText = copy.textContent;
+      copy.textContent = 'Copied!';
+      copy.style.color = '#2ecc71';
+      setTimeout(() => {
+        copy.textContent = originalText;
+        copy.style.color = '';
+      }, 1000);
+    } catch (err) {
+      console.error('Failed to copy to clipboard:', err);
+    }
   });
 
   // Intercept console methods

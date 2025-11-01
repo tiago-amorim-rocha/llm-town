@@ -110,7 +110,13 @@
       color: #eee;
     }
 
-    #console-clear {
+    #console-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    #console-clear,
+    #console-copy {
       background: none;
       border: none;
       color: #888;
@@ -118,7 +124,8 @@
       padding: 4px 8px;
       font-size: 11px;
     }
-    #console-clear:hover {
+    #console-clear:hover,
+    #console-copy:hover {
       color: #eee;
     }
 
@@ -127,6 +134,9 @@
       overflow-y: auto;
       padding: 8px;
       color: #ccc;
+      /* Make text selectable for copying */
+      -webkit-user-select: text;
+      user-select: text;
     }
 
     .console-message {
@@ -240,7 +250,10 @@
   <div id="console-panel">
     <div id="console-header">
       <span id="console-title">Console</span>
-      <button id="console-clear">Clear</button>
+      <div id="console-buttons">
+        <button id="console-copy">Copy All</button>
+        <button id="console-clear">Clear</button>
+      </div>
     </div>
     <div id="console-output"></div>
   </div>
