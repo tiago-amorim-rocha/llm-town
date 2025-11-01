@@ -6,8 +6,20 @@ import { SmartEntity } from './entities.js';
 import { getCycleState, getDarknessOpacity } from './cycle.js';
 import { getFriendlyVisibleEntities } from './visibility.js';
 
+// FPS tracking
+let lastFrameTime = performance.now();
+let fps = 60;
+const fpsSmoothing = 0.9; // Higher = smoother but slower to update
+
 export function render(canvas, entities, SVG_COMPONENTS, getCharacterSVG, characterEntity) {
   if (!canvas) return;
+
+  // Calculate FPS
+  const now = performance.now();
+  const delta = now - lastFrameTime;
+  lastFrameTime = now;
+  const currentFps = 1000 / delta;
+  fps = fps * fpsSmoothing + currentFps * (1 - fpsSmoothing); // Smooth FPS
 
   const width = window.innerWidth;
   const height = window.innerHeight;
@@ -69,6 +81,19 @@ export function render(canvas, entities, SVG_COMPONENTS, getCharacterSVG, charac
     });
   }
 
+  // FPS counter display
+  const fpsDisplay = `
+    <text x="10" y="25"
+          font-family="monospace"
+          font-size="16"
+          fill="#ffdd1a"
+          stroke="#000000"
+          stroke-width="3"
+          paint-order="stroke">
+      FPS: ${Math.round(fps)}
+    </text>
+  `;
+
   canvas.innerHTML = `
     <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
       <!-- Background -->
@@ -85,6 +110,10 @@ export function render(canvas, entities, SVG_COMPONENTS, getCharacterSVG, charac
 
       <!-- Darkness overlay for night -->
       <rect width="100%" height="100%" fill="#000000" opacity="${darknessOpacity}" pointer-events="none"/>
+
+      <!-- FPS Counter -->
+      ${fpsDisplay}
     </svg>
   `;
 }
+
