@@ -261,6 +261,7 @@ function canCollectFrom(entity) {
   if (inventory.length >= MAX_INVENTORY_SIZE) return false;
   if (entity.type === 'tree' && entity.state > 0) return true; // Has apples
   if (entity.type === 'grass' && entity.state > 0) return true; // Has berries
+  if (entity.type === 'ground-apple' || entity.type === 'ground-berry') return true; // Ground items
   return false;
 }
 
@@ -273,10 +274,16 @@ function startCollection(entity) {
 
   if (entity.type === 'tree') {
     collectionType = 'apple';
-    console.log(`🍎 Started collecting apple (${APPLE_COLLECTION_TIME/1000}s)`);
+    console.log(`🍎 Started collecting apple from tree (${APPLE_COLLECTION_TIME/1000}s)`);
   } else if (entity.type === 'grass') {
     collectionType = 'berry';
-    console.log(`🫐 Started collecting berries (${BERRY_COLLECTION_TIME/1000}s)`);
+    console.log(`🫐 Started collecting berries from bush (${BERRY_COLLECTION_TIME/1000}s)`);
+  } else if (entity.type === 'ground-apple') {
+    collectionType = 'apple';
+    console.log(`🍎 Picking up apple from ground (instant)`);
+  } else if (entity.type === 'ground-berry') {
+    collectionType = 'berry';
+    console.log(`🫐 Picking up berries from ground (instant)`);
   }
 
   return true;
@@ -286,7 +293,17 @@ function updateCollection() {
   if (!isCollecting) return;
 
   const now = Date.now();
-  const collectionTime = collectionType === 'apple' ? APPLE_COLLECTION_TIME : BERRY_COLLECTION_TIME;
+
+  // Ground items are collected instantly
+  let collectionTime;
+  if (collectionTarget.type === 'ground-apple' || collectionTarget.type === 'ground-berry') {
+    collectionTime = 100; // 100ms for ground items (instant)
+  } else if (collectionType === 'apple') {
+    collectionTime = APPLE_COLLECTION_TIME;
+  } else {
+    collectionTime = BERRY_COLLECTION_TIME;
+  }
+
   const elapsed = now - collectionStartTime;
 
   // Update animation progress (0 to 1)
@@ -307,10 +324,19 @@ function completeCollection() {
     sourceEntity: collectionTarget
   });
 
-  // Decrease state of source entity (remove one apple/berry)
-  collectionTarget.state = Math.max(0, collectionTarget.state - 1);
-
-  console.log(`✅ Collected ${collectionType}! Inventory: ${inventory.length}/${MAX_INVENTORY_SIZE}`);
+  // Handle source entity based on type
+  if (collectionTarget.type === 'ground-apple' || collectionTarget.type === 'ground-berry') {
+    // Remove ground item from entities
+    const index = entities.indexOf(collectionTarget);
+    if (index > -1) {
+      entities.splice(index, 1);
+      console.log(`✅ Picked up ${collectionType} from ground! Inventory: ${inventory.length}/${MAX_INVENTORY_SIZE}`);
+    }
+  } else {
+    // Decrease state of source entity (remove one apple/berry from tree/grass)
+    collectionTarget.state = Math.max(0, collectionTarget.state - 1);
+    console.log(`✅ Collected ${collectionType}! Inventory: ${inventory.length}/${MAX_INVENTORY_SIZE}`);
+  }
 
   // Reset collection state
   isCollecting = false;
@@ -371,6 +397,8 @@ function dropItem(index) {
 // Test state machine for automated actions
 let actionSequence = [];
 let currentActionIndex = 0;
+let retryCurrentAction = false; // Flag to retry current action after search mode
+let retryActionData = null; // Store action to retry
 
 // Define action types
 const ACTION_TYPE = {
@@ -382,18 +410,19 @@ const ACTION_TYPE = {
 
 // Initialize test action sequence
 function initActionSequence() {
-  // Simple test sequence: collect items, then drop them
+  // Simple test sequence: collect items, drop them, then pick them up again
+  // Note: Collection happens automatically on arrival at trees/grass/ground items
   actionSequence = [
-    { type: ACTION_TYPE.MOVE_TO, targetType: 'tree' }, // Move to tree
-    { type: ACTION_TYPE.COLLECT },                      // Collect apple
-    { type: ACTION_TYPE.MOVE_TO, targetType: 'grass' }, // Move to grass
-    { type: ACTION_TYPE.COLLECT },                      // Collect berries
+    { type: ACTION_TYPE.MOVE_TO, targetType: 'tree' },  // Move to tree (auto-collects apple on arrival)
+    { type: ACTION_TYPE.MOVE_TO, targetType: 'grass' }, // Move to grass (auto-collects berries on arrival)
     { type: ACTION_TYPE.WAIT, duration: 2000 },         // Wait 2 seconds
     { type: ACTION_TYPE.DROP, itemIndex: 0 },           // Drop first item
     { type: ACTION_TYPE.WAIT, duration: 1000 },         // Wait 1 second
     { type: ACTION_TYPE.DROP, itemIndex: 0 },           // Drop second item (now at index 0)
-    { type: ACTION_TYPE.MOVE_TO, targetType: 'tree' }, // Move to tree again
-    { type: ACTION_TYPE.COLLECT },                      // Collect another apple
+    { type: ACTION_TYPE.WAIT, duration: 1500 },         // Wait 1.5 seconds
+    { type: ACTION_TYPE.MOVE_TO, targetType: 'ground-apple' }, // Pick up dropped apple
+    { type: ACTION_TYPE.MOVE_TO, targetType: 'ground-berry' }, // Pick up dropped berries
+    { type: ACTION_TYPE.MOVE_TO, targetType: 'bonfire' }, // Move to bonfire (no collection)
   ];
   currentActionIndex = 0;
   console.log('🤖 Initialized action sequence with', actionSequence.length, 'actions');
@@ -426,14 +455,19 @@ function executeNextAction() {
         startMoveToMode(target, false);
       } else {
         console.log(`⚠️ No visible ${action.targetType} found, entering search mode`);
+        // Set retry flag so we retry this action after search mode
+        retryCurrentAction = true;
+        retryActionData = action;
         startSearchMode();
       }
       break;
 
     case ACTION_TYPE.COLLECT:
       // Collection is automatic when arriving at collectible target
-      // This action is a no-op, collection happens in arrival handler
-      console.log('📋 Collect action queued (will execute on arrival)');
+      // This action serves as documentation in the sequence but is handled by arrival
+      console.log('📋 Collect action (handled automatically on arrival)');
+      // This is a no-op, immediately move to next action
+      setTimeout(() => executeNextAction(), 100);
       break;
 
     case ACTION_TYPE.DROP:
@@ -699,11 +733,24 @@ function updateCharacterPosition() {
 
     // Check if search mode duration has elapsed
     if (searchModeStartTime && Date.now() - searchModeStartTime >= SEARCH_MODE_DURATION) {
-      // Reset cycle and start move-to mode
-      moveToCount = 0;
-      const target = getRandomVisibleObject();
-      // Start first cycle with walking (false)
-      startMoveToMode(target, false);
+      console.log('⏰ Search mode duration elapsed');
+
+      // Check if we need to retry an action from the sequence
+      if (retryCurrentAction && retryActionData) {
+        console.log('🔄 Retrying action from sequence:', retryActionData.type);
+        retryCurrentAction = false;
+        const actionToRetry = retryActionData;
+        retryActionData = null;
+
+        // Decrement action index to retry the same action
+        currentActionIndex--;
+        executeNextAction();
+      } else {
+        // No retry needed - shouldn't normally reach here with action sequence
+        // But keep this as fallback
+        console.log('⚠️ Search mode ended without retry context - this shouldn\'t happen!');
+        executeNextAction();
+      }
       return;
     }
 
