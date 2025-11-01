@@ -1,0 +1,48 @@
+name: Auto-update version.txt on main commits
+on:
+  push:
+    branches:
+      - main
+permissions:
+  contents: write
+jobs:
+  update-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # Need at least 2 commits to check if it's a merge
+
+      - name: Check if this is a merge commit
+        id: check-merge
+        run: |
+          # Get the number of parents for the HEAD commit
+          PARENT_COUNT=$(git cat-file -p HEAD | grep '^parent ' | wc -l)
+
+          if [ "$PARENT_COUNT" -gt 1 ]; then
+            echo "This is a merge commit (parents: $PARENT_COUNT)"
+            echo "is_merge=true" >> $GITHUB_OUTPUT
+          else
+            echo "This is a direct commit (parents: $PARENT_COUNT)"
+            echo "is_merge=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update version.txt
+        if: steps.check-merge.outputs.is_merge == 'false'
+        run: |
+          # Generate timestamp in milliseconds
+          TIMESTAMP=$(date +%s%3N)
+          echo "$TIMESTAMP" > version.txt
+
+          # Check if version.txt actually changed
+          if ! git diff --quiet version.txt; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add version.txt
+            git commit -m "auto: update version.txt to $TIMESTAMP"
+            git push origin main
+            echo "✅ Updated version.txt to $TIMESTAMP"
+          else
+            echo "ℹ️ version.txt already up to date"
+          fi

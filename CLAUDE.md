@@ -3,26 +3,33 @@
 ---
 # ✅ AUTOMATED VERSION CONTROL ✅
 
-**Good news: version.txt updates are now AUTOMATED in the GitHub Actions workflow!**
+**Good news: version.txt updates are now FULLY AUTOMATED via GitHub Actions!**
 
-When you push to `claude/**` branches:
-1. GitHub Actions automatically updates `version.txt` with a timestamp
-2. Commits the change to your branch
-3. Merges to `main` and deploys
+**Two workflows ensure cache busting always works:**
 
-**No manual setup required!** The cache busting system works out of the box.
+1. **Push to `claude/**` branches** (recommended workflow):
+   - Updates `version.txt` with timestamp
+   - Commits to your branch
+   - Merges to `main` and deploys
+
+2. **Push directly to `main`** (now also automated!):
+   - Detects non-merge commits
+   - Auto-updates `version.txt`
+   - Commits and pushes the change
+
+**No manual setup required!** Whether you use `claude/**` branches or commit directly to `main`, version.txt updates automatically.
 
 ---
 
 ### 🔧 Optional: Local Pre-commit Hook
 
-For direct commits to `main` (rare), you can optionally install a local hook:
+For offline development or testing, you can optionally install a local hook:
 
 ```bash
 ./install-hooks.sh
 ```
 
-This is **not required** for the normal `claude/**` workflow, which handles versioning automatically.
+This is **not required** - both GitHub workflows handle versioning automatically.
 
 ---
 
@@ -95,7 +102,7 @@ Main scene setup in `initScene()`:
 
 ## Automated Systems
 
-### ✅ Auto-promotion Workflow (with automatic versioning)
+### ✅ Auto-promotion Workflow (claude/** branches)
 **File**: `.github/workflows/autopromote.yml`
 **Trigger**: Push to any `claude/**` branch
 
@@ -103,12 +110,6 @@ Main scene setup in `initScene()`:
 1. **Updates version.txt** - Generates timestamp and commits to your branch
 2. **Merges to main** - Automatically merges your branch into `main`
 3. **Deploys** - GitHub Pages serves the new version immediately
-
-**Why this is great:**
-- ✅ No manual setup required
-- ✅ Works in any environment (immune to resets)
-- ✅ Can't be forgotten
-- ✅ Cache busting always works
 
 **Version update logic:**
 ```bash
@@ -118,14 +119,35 @@ date +%s%3N > version.txt
 # Then merges to main
 ```
 
-### ⚙️ Local Pre-commit Hook (optional backup)
+### ✅ Auto-versioning on Main (direct commits)
+**File**: `.github/workflows/version-on-main.yml`
+**Trigger**: Push to `main` branch
+
+**What it does:**
+1. **Checks commit type** - Detects if it's a merge or direct commit
+2. **Updates version.txt** - For non-merge commits, generates new timestamp
+3. **Commits automatically** - Pushes version.txt update to main
+
+**Why this matters:**
+- ✅ Direct commits to `main` now auto-update version.txt
+- ✅ Skips merge commits (avoids conflicts with autopromote workflow)
+- ✅ Ensures cache busting works regardless of workflow
+
+**Version detection logic:**
+```bash
+# Checks if commit has multiple parents (merge)
+PARENT_COUNT=$(git cat-file -p HEAD | grep '^parent ' | wc -l)
+# Only updates version.txt if PARENT_COUNT == 1 (direct commit)
+```
+
+### ⚙️ Local Pre-commit Hook (optional)
 **File**: `.githooks/pre-commit` (tracked in git)
-**Purpose**: Updates `version.txt` for direct commits to `main`
+**Purpose**: Updates `version.txt` for offline development
 **Setup**: `./install-hooks.sh` (runs `git config core.hooksPath .githooks`)
 
 **When needed:**
-- Only for direct commits to `main` (bypassing `claude/**` workflow)
-- Not required for normal development workflow
+- Offline development without GitHub Actions
+- Not required for normal workflow (GitHub Actions handle everything)
 - Immune to being "lost" (hook file is tracked in git)
 
 ### ✅ Branch Cleanup
@@ -264,6 +286,7 @@ assets/
 .
 ├── .github/workflows/
 │   ├── autopromote.yml           # Auto-merge claude/** → main + version.txt update
+│   ├── version-on-main.yml       # Auto-update version.txt on direct main commits
 │   └── cleanup-old-branches.yml  # Daily branch cleanup
 ├── .githooks/
 │   └── pre-commit                # Optional: auto-updates version.txt locally
