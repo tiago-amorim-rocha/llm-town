@@ -3,6 +3,7 @@
 
 import { distance } from './utils.js';
 
+let isOpen = false;
 let statusText = '';
 let statusTimeout = null;
 
@@ -25,144 +26,183 @@ function updateStatusDisplay() {
 }
 
 export function initTestUI(characterEntity, getEntities) {
-  // Create UI container
-  const uiContainer = document.createElement('div');
-  uiContainer.id = 'test-ui';
-  uiContainer.innerHTML = `
-    <div id="test-menu">
-      <h3>Character Actions</h3>
+  // Create toggle button
+  const toggleButton = document.createElement('button');
+  toggleButton.id = 'testui-toggle';
+  toggleButton.textContent = '🎮';
+  toggleButton.title = 'Toggle Action Menu';
+  document.body.appendChild(toggleButton);
 
-      <div class="action-section">
-        <h4>Movement</h4>
-        <button id="btn-wander-short">Wander (3s)</button>
-        <button id="btn-wander-long">Wander (10s)</button>
-        <button id="btn-stop">Stop Action</button>
-      </div>
-
-      <div class="action-section">
-        <h4>Search</h4>
-        <button id="btn-search-apple">Search Apple</button>
-        <button id="btn-search-berry">Search Berry</button>
-      </div>
-
-      <div class="action-section">
-        <h4>Collect</h4>
-        <button id="btn-collect-nearest">Collect Nearest</button>
-        <button id="btn-collect-apple">Collect Apple</button>
-        <button id="btn-collect-berry">Collect Berry</button>
-      </div>
-
-      <div class="action-section">
-        <h4>Drop</h4>
-        <button id="btn-drop-apple">Drop Apple</button>
-        <button id="btn-drop-berry">Drop Berry</button>
-      </div>
-
-      <div class="action-section">
-        <h4>Info</h4>
-        <div id="inventory-info">Inventory: Empty</div>
-        <div id="action-status"></div>
-      </div>
+  // Create UI panel
+  const panel = document.createElement('div');
+  panel.id = 'testui-panel';
+  panel.innerHTML = `
+    <div id="testui-header">
+      <span>Character Actions</span>
+      <div id="inventory-info">Empty</div>
     </div>
-  `;
+    <div id="testui-actions">
+      <!-- Movement -->
+      <button class="action-btn" data-action="wander-short" title="Wander 3s">🚶</button>
+      <button class="action-btn" data-action="wander-long" title="Wander 10s">🏃</button>
+      <button class="action-btn" data-action="stop" title="Stop">🛑</button>
 
-  document.body.appendChild(uiContainer);
+      <!-- Search -->
+      <button class="action-btn" data-action="search-apple" title="Search Apple">🔍🍎</button>
+      <button class="action-btn" data-action="search-berry" title="Search Berry">🔍🫐</button>
+
+      <!-- Collect -->
+      <button class="action-btn" data-action="collect-nearest" title="Collect Nearest">🎯</button>
+      <button class="action-btn" data-action="collect-apple" title="Collect Apple">🍎</button>
+      <button class="action-btn" data-action="collect-berry" title="Collect Berry">🫐</button>
+
+      <!-- Drop -->
+      <button class="action-btn" data-action="drop-apple" title="Drop Apple">📦🍎</button>
+      <button class="action-btn" data-action="drop-berry" title="Drop Berry">📦🫐</button>
+    </div>
+    <div id="action-status"></div>
+  `;
+  document.body.appendChild(panel);
 
   // Add styles
   const style = document.createElement('style');
   style.textContent = `
-    #test-ui {
+    #testui-toggle {
       position: fixed;
-      top: 10px;
-      right: 10px;
-      z-index: 1000;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    }
-
-    #test-menu {
-      background: rgba(20, 20, 20, 0.95);
-      border: 2px solid #ffdd1a;
-      border-radius: 8px;
-      padding: 15px;
-      color: #ffffff;
-      min-width: 200px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-    }
-
-    #test-menu h3 {
-      margin: 0 0 15px 0;
-      color: #ffdd1a;
-      font-size: 18px;
-      border-bottom: 2px solid #ffdd1a;
-      padding-bottom: 8px;
-    }
-
-    #test-menu h4 {
-      margin: 12px 0 8px 0;
-      color: #aaaaaa;
-      font-size: 14px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-
-    .action-section {
-      margin-bottom: 10px;
-    }
-
-    .action-section:last-of-type {
-      border-top: 1px solid #444;
-      padding-top: 10px;
-    }
-
-    #test-menu button {
-      display: block;
-      width: 100%;
-      padding: 10px;
-      margin: 5px 0;
-      background: #2a5d2a;
-      color: #ffffff;
-      border: 1px solid #3a7d3a;
-      border-radius: 4px;
+      bottom: calc(80px + env(safe-area-inset-bottom));
+      right: calc(20px + env(safe-area-inset-right));
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: #1a1d23;
+      border: 2px solid #333;
+      color: #eee;
+      font-size: 24px;
       cursor: pointer;
-      font-size: 13px;
-      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
       transition: all 0.2s;
     }
 
-    #test-menu button:hover {
+    #testui-toggle:hover {
+      background: #252831;
+      border-color: #555;
+    }
+
+    #testui-panel {
+      position: fixed;
+      bottom: calc(140px + env(safe-area-inset-bottom));
+      right: calc(20px + env(safe-area-inset-right));
+      width: 350px;
+      max-width: calc(100vw - 40px);
+      background: #1a1d23;
+      border: 2px solid #333;
+      border-radius: 8px;
+      display: none;
+      flex-direction: column;
+      z-index: 999;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      padding: 15px;
+      gap: 12px;
+    }
+
+    #testui-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #333;
+      color: #eee;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    #inventory-info {
+      font-size: 12px;
+      color: #ffdd1a;
+      font-weight: 500;
+    }
+
+    #testui-actions {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      padding: 10px 0;
+    }
+
+    .action-btn {
+      width: 55px;
+      height: 55px;
+      border-radius: 50%;
+      background: #2a5d2a;
+      border: 2px solid #3a7d3a;
+      color: #fff;
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      padding: 0;
+    }
+
+    .action-btn:hover {
       background: #3a7d3a;
       border-color: #ffdd1a;
-      transform: translateY(-1px);
-      box-shadow: 0 2px 8px rgba(255, 221, 26, 0.3);
+      transform: scale(1.1);
+      box-shadow: 0 2px 12px rgba(255, 221, 26, 0.4);
     }
 
-    #test-menu button:active {
-      transform: translateY(0);
+    .action-btn:active {
+      transform: scale(0.95);
     }
 
-    #test-menu button:disabled {
+    .action-btn:disabled {
       background: #333;
-      border-color: #555;
+      border-color: #444;
       color: #666;
       cursor: not-allowed;
       transform: none;
     }
 
-    #inventory-info, #action-status {
+    #action-status {
       padding: 8px;
-      margin: 5px 0;
       background: rgba(0, 0, 0, 0.3);
       border-radius: 4px;
+      color: #ffdd1a;
       font-size: 12px;
       min-height: 20px;
+      text-align: center;
+      font-weight: 500;
     }
 
-    #action-status {
-      color: #ffdd1a;
-      font-weight: 500;
+    /* Mobile adjustments */
+    @media (max-width: 480px) {
+      #testui-panel {
+        width: calc(100vw - 40px);
+      }
+
+      #testui-actions {
+        grid-template-columns: repeat(4, 1fr);
+      }
+
+      .action-btn {
+        width: 50px;
+        height: 50px;
+        font-size: 18px;
+      }
     }
   `;
   document.head.appendChild(style);
+
+  // Toggle panel visibility
+  toggleButton.addEventListener('click', () => {
+    isOpen = !isOpen;
+    panel.style.display = isOpen ? 'flex' : 'none';
+    toggleButton.textContent = isOpen ? '✕' : '🎮';
+  });
 
   // Update inventory display periodically
   setInterval(() => {
@@ -170,23 +210,22 @@ export function initTestUI(characterEntity, getEntities) {
     if (invInfo && characterEntity) {
       const items = characterEntity.inventory.items;
       if (items.length === 0) {
-        invInfo.textContent = 'Inventory: Empty';
+        invInfo.textContent = 'Empty';
       } else {
         const itemCounts = {};
         items.forEach(item => {
           itemCounts[item.type] = (itemCounts[item.type] || 0) + 1;
         });
         const itemText = Object.entries(itemCounts)
-          .map(([type, count]) => `${count}x ${type}`)
-          .join(', ');
-        invInfo.textContent = `Inventory: ${itemText}`;
+          .map(([type, count]) => `${count}x ${type === 'apple' ? '🍎' : '🫐'}`)
+          .join(' ');
+        invInfo.textContent = itemText;
       }
     }
   }, 200);
 
   // Helper: Find nearest entity of type with item
   function findNearestWithItem(itemType) {
-    const entities = getEntities();
     const visibleEntities = characterEntity.getVisibleEntities();
 
     let targetType = null;
@@ -243,136 +282,135 @@ export function initTestUI(characterEntity, getEntities) {
   }
 
   // Action handlers
-  document.getElementById('btn-wander-short').addEventListener('click', () => {
-    showStatus('🚶 Starting 3s wander...');
-    characterEntity.wander(3000, (result) => {
-      if (result.success) {
-        showStatus('✅ Wander complete');
+  const actions = {
+    'wander-short': () => {
+      showStatus('🚶 Wandering 3s...');
+      characterEntity.wander(3000, (result) => {
+        if (result.success) showStatus('✅ Wander complete');
+      });
+    },
+
+    'wander-long': () => {
+      showStatus('🏃 Wandering 10s...');
+      characterEntity.wander(10000, (result) => {
+        if (result.success) showStatus('✅ Wander complete');
+      });
+    },
+
+    'stop': () => {
+      characterEntity.stopCurrentAction();
+      showStatus('🛑 Stopped');
+    },
+
+    'search-apple': () => {
+      showStatus('🔍 Searching apple...');
+      characterEntity.searchFor('apple', (result) => {
+        if (result.success) {
+          showStatus('✅ Found apple!');
+        } else {
+          showStatus(`❌ ${result.reason}`);
+        }
+      });
+    },
+
+    'search-berry': () => {
+      showStatus('🔍 Searching berry...');
+      characterEntity.searchFor('berry', (result) => {
+        if (result.success) {
+          showStatus('✅ Found berry!');
+        } else {
+          showStatus(`❌ ${result.reason}`);
+        }
+      });
+    },
+
+    'collect-nearest': () => {
+      const target = findNearestCollectible();
+      if (!target) {
+        showStatus('❌ Nothing in sight');
+        return;
       }
-    });
-  });
+      const itemType = target.inventory.items[0].type;
+      showStatus(`🎯 Collecting...`);
+      characterEntity.collect(target, itemType, (result) => {
+        if (result.success) {
+          showStatus(`✅ Collected ${itemType === 'apple' ? '🍎' : '🫐'}!`);
+        } else {
+          showStatus(`❌ ${result.reason}`);
+        }
+      });
+    },
 
-  document.getElementById('btn-wander-long').addEventListener('click', () => {
-    showStatus('🚶 Starting 10s wander...');
-    characterEntity.wander(10000, (result) => {
-      if (result.success) {
-        showStatus('✅ Wander complete');
+    'collect-apple': () => {
+      const target = findNearestWithItem('apple');
+      if (!target) {
+        showStatus('❌ No apples visible');
+        return;
       }
-    });
-  });
+      showStatus('🍎 Collecting...');
+      characterEntity.collect(target, 'apple', (result) => {
+        if (result.success) {
+          showStatus('✅ Got apple! 🍎');
+        } else {
+          showStatus(`❌ ${result.reason}`);
+        }
+      });
+    },
 
-  document.getElementById('btn-stop').addEventListener('click', () => {
-    characterEntity.stopCurrentAction();
-    showStatus('🛑 Action stopped');
-  });
-
-  document.getElementById('btn-search-apple').addEventListener('click', () => {
-    showStatus('🔍 Searching for apple...');
-    characterEntity.searchFor('apple', (result) => {
-      if (result.success) {
-        showStatus('✅ Found apple!');
-      } else {
-        showStatus(`❌ Search failed: ${result.reason}`);
+    'collect-berry': () => {
+      const target = findNearestWithItem('berry');
+      if (!target) {
+        showStatus('❌ No berries visible');
+        return;
       }
-    });
-  });
+      showStatus('🫐 Collecting...');
+      characterEntity.collect(target, 'berry', (result) => {
+        if (result.success) {
+          showStatus('✅ Got berry! 🫐');
+        } else {
+          showStatus(`❌ ${result.reason}`);
+        }
+      });
+    },
 
-  document.getElementById('btn-search-berry').addEventListener('click', () => {
-    showStatus('🔍 Searching for berry...');
-    characterEntity.searchFor('berry', (result) => {
-      if (result.success) {
-        showStatus('✅ Found berry!');
-      } else {
-        showStatus(`❌ Search failed: ${result.reason}`);
+    'drop-apple': () => {
+      if (!characterEntity.inventory.hasItem('apple')) {
+        showStatus('❌ No apples');
+        return;
       }
-    });
-  });
+      showStatus('📦 Dropping...');
+      characterEntity.drop('apple', (result) => {
+        if (result.success) {
+          showStatus('✅ Dropped apple');
+        } else {
+          showStatus(`❌ ${result.reason}`);
+        }
+      });
+    },
 
-  document.getElementById('btn-collect-nearest').addEventListener('click', () => {
-    const target = findNearestCollectible();
-    if (!target) {
-      showStatus('❌ No collectibles in sight');
-      return;
+    'drop-berry': () => {
+      if (!characterEntity.inventory.hasItem('berry')) {
+        showStatus('❌ No berries');
+        return;
+      }
+      showStatus('📦 Dropping...');
+      characterEntity.drop('berry', (result) => {
+        if (result.success) {
+          showStatus('✅ Dropped berry');
+        } else {
+          showStatus(`❌ ${result.reason}`);
+        }
+      });
     }
+  };
 
-    // Find what item type to collect
-    const itemType = target.inventory.items[0].type;
-    showStatus(`🎯 Collecting ${itemType} from ${target.type}...`);
-
-    characterEntity.collect(target, itemType, (result) => {
-      if (result.success) {
-        showStatus(`✅ Collected ${itemType}!`);
-      } else {
-        showStatus(`❌ Collection failed: ${result.reason}`);
-      }
-    });
-  });
-
-  document.getElementById('btn-collect-apple').addEventListener('click', () => {
-    const target = findNearestWithItem('apple');
-    if (!target) {
-      showStatus('❌ No apples in sight');
-      return;
+  // Attach click handlers to all action buttons
+  document.querySelectorAll('.action-btn').forEach(btn => {
+    const action = btn.dataset.action;
+    if (actions[action]) {
+      btn.addEventListener('click', actions[action]);
     }
-
-    showStatus('🎯 Collecting apple...');
-    characterEntity.collect(target, 'apple', (result) => {
-      if (result.success) {
-        showStatus('✅ Collected apple!');
-      } else {
-        showStatus(`❌ Collection failed: ${result.reason}`);
-      }
-    });
   });
 
-  document.getElementById('btn-collect-berry').addEventListener('click', () => {
-    const target = findNearestWithItem('berry');
-    if (!target) {
-      showStatus('❌ No berries in sight');
-      return;
-    }
-
-    showStatus('🎯 Collecting berry...');
-    characterEntity.collect(target, 'berry', (result) => {
-      if (result.success) {
-        showStatus('✅ Collected berry!');
-      } else {
-        showStatus(`❌ Collection failed: ${result.reason}`);
-      }
-    });
-  });
-
-  document.getElementById('btn-drop-apple').addEventListener('click', () => {
-    if (!characterEntity.inventory.hasItem('apple')) {
-      showStatus('❌ No apples to drop');
-      return;
-    }
-
-    showStatus('📦 Dropping apple...');
-    characterEntity.drop('apple', (result) => {
-      if (result.success) {
-        showStatus('✅ Dropped apple!');
-      } else {
-        showStatus(`❌ Drop failed: ${result.reason}`);
-      }
-    });
-  });
-
-  document.getElementById('btn-drop-berry').addEventListener('click', () => {
-    if (!characterEntity.inventory.hasItem('berry')) {
-      showStatus('❌ No berries to drop');
-      return;
-    }
-
-    showStatus('📦 Dropping berry...');
-    characterEntity.drop('berry', (result) => {
-      if (result.success) {
-        showStatus('✅ Dropped berry!');
-      } else {
-        showStatus(`❌ Drop failed: ${result.reason}`);
-      }
-    });
-  });
-
-  console.log('🎮 Test UI initialized! Use the menu on the right to test character actions.');
+  console.log('🎮 Test UI initialized! Click the 🎮 button to toggle action menu.');
 }
