@@ -113,17 +113,17 @@ async function loadSVG(name, path) {
         if (state === 1) {
           // Few berries (2-3 berries)
           decorations = `
-            <circle cx="-5" cy="-10" r="1.2" fill="#8B2252"/>
-            <circle cx="3" cy="-12" r="1.2" fill="#8B2252"/>
+            <circle cx="-5" cy="-10" r="3.6" fill="#8B2252"/>
+            <circle cx="3" cy="-12" r="3.6" fill="#8B2252"/>
           `;
         } else if (state === 2) {
           // Lots of berries (5-6 berries)
           decorations = `
-            <circle cx="-7" cy="-8" r="1.2" fill="#8B2252"/>
-            <circle cx="-3" cy="-12" r="1.2" fill="#8B2252"/>
-            <circle cx="1" cy="-10" r="1.2" fill="#8B2252"/>
-            <circle cx="5" cy="-14" r="1.2" fill="#8B2252"/>
-            <circle cx="7" cy="-9" r="1.2" fill="#8B2252"/>
+            <circle cx="-7" cy="-8" r="3.6" fill="#8B2252"/>
+            <circle cx="-3" cy="-12" r="3.6" fill="#8B2252"/>
+            <circle cx="1" cy="-10" r="3.6" fill="#8B2252"/>
+            <circle cx="5" cy="-14" r="3.6" fill="#8B2252"/>
+            <circle cx="7" cy="-9" r="3.6" fill="#8B2252"/>
           `;
         }
       }
@@ -137,7 +137,7 @@ async function loadSVG(name, path) {
         ];
 
         for (let i = 0; i < state && i < applePositions.length; i++) {
-          decorations += `<circle cx="${applePositions[i].cx}" cy="${applePositions[i].cy}" r="3" fill="#DC143C"/>`;
+          decorations += `<circle cx="${applePositions[i].cx}" cy="${applePositions[i].cy}" r="4.5" fill="#DC143C"/>`;
         }
       }
 
