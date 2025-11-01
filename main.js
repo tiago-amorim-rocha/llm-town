@@ -295,6 +295,9 @@ function gameLoop() {
 
   updateVisibility(entities);
   render(canvas, entities, SVG_COMPONENTS, getCharacterSVG, characterEntity);
+
+  // Request next frame (runs at monitor refresh rate, typically 60fps)
+  requestAnimationFrame(gameLoop);
 }
 
 // ============================================================
@@ -322,9 +325,10 @@ async function init() {
 
   initScene();
 
-  setInterval(gameLoop, config.MOVEMENT_UPDATE_INTERVAL);
+  // Start game loop using requestAnimationFrame for smooth 60fps
+  requestAnimationFrame(gameLoop);
 
-  console.log('🎮 Game loop started');
+  console.log('🎮 Game loop started (using requestAnimationFrame)');
   console.log(`🌞 Day/night cycle: ${config.DAY_NIGHT_CYCLE_DURATION / 1000}s total`);
   console.log(`   Day: ${config.DAY_DURATION / 1000}s | Dusk: ${config.DUSK_DURATION / 1000}s | Night: ${config.NIGHT_DURATION / 1000}s | Dawn: ${config.DAWN_DURATION / 1000}s`);
   console.log(`👁️ Base visibility: ${config.DAY_VISIBILITY_RADIUS}px (day) → ${config.NIGHT_VISIBILITY_RADIUS}px (night)`);
