@@ -306,23 +306,11 @@ function isEntityVisible(entity) {
 
 // Update visibility for all entities
 function updateVisibility() {
-  const previouslyVisible = new Set(visibleEntities);
   visibleEntities.clear();
 
   for (const entity of entities) {
     if (isEntityVisible(entity)) {
       visibleEntities.add(entity);
-
-      // Log when entity becomes visible
-      if (!previouslyVisible.has(entity) && entity !== characterEntity) {
-        const dist = distance(characterEntity.x, characterEntity.y, entity.x, entity.y);
-        console.log(`👁️ ${entity.type} became visible at distance ${dist.toFixed(1)}px`);
-      }
-    } else {
-      // Log when entity becomes invisible
-      if (previouslyVisible.has(entity) && entity !== characterEntity) {
-        console.log(`🌫️ ${entity.type} became invisible`);
-      }
     }
   }
 }
@@ -627,7 +615,7 @@ function initScene() {
     while (!placed && attempts < maxAttempts) {
       const x = Math.random() * width;
       const y = Math.random() * height * 0.8; // Keep in upper 80%
-      const scale = 0.6 + Math.random() * 0.6; // Scale between 0.6-1.2 (1.5x larger than before)
+      const scale = 0.8 + Math.random() * 0.4; // Scale between 0.8-1.2 (reduced size variation)
 
       // Avoid placing too close to bonfire area
       const distToBonfire = Math.sqrt((x - bonfireX) ** 2 + (y - bonfireY) ** 2);
@@ -668,7 +656,7 @@ function initScene() {
   for (let i = 0; i < grassCount; i++) {
     const x = Math.random() * width;
     const y = Math.random() * height;
-    const scale = 0.45 + Math.random() * 0.6; // Scale between 0.45-1.05 (1.5x larger than before)
+    const scale = 0.7 + Math.random() * 0.35; // Scale between 0.7-1.05 (reduced size variation)
     // Randomly assign berry state: 0 (no berries), 1 (few berries), 2 (lots of berries)
     const berryState = Math.floor(Math.random() * 3); // 0, 1, or 2
     entities.push(new Entity('grass', x, y, scale, berryState));
