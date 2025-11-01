@@ -345,7 +345,8 @@ function completeCollection() {
   collectionType = null;
   collectionAnimationProgress = 0;
 
-  // Execute next action in sequence after a short delay
+  // Clear action guard and execute next action after a short delay
+  isExecutingAction = false;
   setTimeout(() => executeNextAction(), 500);
 }
 
@@ -399,6 +400,7 @@ let actionSequence = [];
 let currentActionIndex = 0;
 let retryCurrentAction = false; // Flag to retry current action after search mode
 let retryActionData = null; // Store action to retry
+let isExecutingAction = false; // Guard to prevent simultaneous action execution
 
 // Define action types
 const ACTION_TYPE = {
@@ -411,19 +413,18 @@ const ACTION_TYPE = {
 
 // Initialize test action sequence
 function initActionSequence() {
-  // Test sequence: collect items, wander with full inventory, drop them, pick them up again
-  // Note: Collection happens automatically on arrival at trees/grass/ground items
+  // Test sequence: collect items, wander with full inventory, drop them, repeat
+  // Note: Collection happens automatically on arrival at trees/grass if they have items
+  // This sequence is robust - it handles missing items gracefully
   actionSequence = [
-    { type: ACTION_TYPE.MOVE_TO, targetType: 'tree' },  // Move to tree (auto-collects apple on arrival)
-    { type: ACTION_TYPE.MOVE_TO, targetType: 'grass' }, // Move to grass (auto-collects berries on arrival)
-    { type: ACTION_TYPE.WANDER, duration: 5000 },       // Wander 5 seconds (inventory full)
-    { type: ACTION_TYPE.DROP, itemIndex: 0 },           // Drop first item
+    { type: ACTION_TYPE.MOVE_TO, targetType: 'tree' },  // Move to tree (auto-collects if has apples)
+    { type: ACTION_TYPE.MOVE_TO, targetType: 'grass' }, // Move to grass (auto-collects if has berries)
+    { type: ACTION_TYPE.WANDER, duration: 5000 },       // Wander 5 seconds
+    { type: ACTION_TYPE.DROP, itemIndex: 0 },           // Drop first item (skips if inventory empty)
     { type: ACTION_TYPE.WANDER, duration: 5000 },       // Wander 5 more seconds
-    { type: ACTION_TYPE.DROP, itemIndex: 0 },           // Drop second item (now at index 0)
-    { type: ACTION_TYPE.WAIT, duration: 1500 },         // Wait 1.5 seconds
-    { type: ACTION_TYPE.MOVE_TO, targetType: 'ground-apple' }, // Pick up dropped apple
-    { type: ACTION_TYPE.MOVE_TO, targetType: 'ground-berry' }, // Pick up dropped berries
-    { type: ACTION_TYPE.MOVE_TO, targetType: 'bonfire' }, // Move to bonfire (no collection)
+    { type: ACTION_TYPE.DROP, itemIndex: 0 },           // Drop second item (skips if inventory empty)
+    { type: ACTION_TYPE.MOVE_TO, targetType: 'bonfire' }, // Move to bonfire
+    { type: ACTION_TYPE.WAIT, duration: 2000 },         // Wait at bonfire
   ];
   currentActionIndex = 0;
   console.log('🤖 Initialized action sequence with', actionSequence.length, 'actions');
@@ -444,6 +445,13 @@ function getNextAction() {
 
 // Execute the next action in sequence
 function executeNextAction() {
+  // Guard against simultaneous action execution
+  if (isExecutingAction) {
+    console.log('⚠️ Action already in progress, skipping duplicate call');
+    return;
+  }
+
+  isExecutingAction = true;
   const action = getNextAction();
   console.log(`🎬 Executing action ${currentActionIndex}/${actionSequence.length}:`, action.type);
 
@@ -454,12 +462,14 @@ function executeNextAction() {
       if (targets.length > 0) {
         const target = targets[Math.floor(Math.random() * targets.length)];
         startMoveToMode(target, false);
+        // Guard will be cleared when arrival handler calls executeNextAction
       } else {
         console.log(`⚠️ No visible ${action.targetType} found, entering search mode`);
         // Set retry flag so we retry this action after search mode
         retryCurrentAction = true;
         retryActionData = action;
         startSearchMode();
+        // Guard will be cleared when retry happens or search mode ends
       }
       break;
 
@@ -467,7 +477,8 @@ function executeNextAction() {
       // Collection is automatic when arriving at collectible target
       // This action serves as documentation in the sequence but is handled by arrival
       console.log('📋 Collect action (handled automatically on arrival)');
-      // This is a no-op, immediately move to next action
+      // This is a no-op, clear guard and move to next action
+      isExecutingAction = false;
       setTimeout(() => executeNextAction(), 100);
       break;
 
@@ -475,16 +486,20 @@ function executeNextAction() {
       if (inventory.length > 0) {
         const index = Math.min(action.itemIndex, inventory.length - 1);
         dropItem(index);
-        // After dropping, execute next action after a short delay
+        // Clear guard and execute next action after a short delay
+        isExecutingAction = false;
         setTimeout(() => executeNextAction(), 500);
       } else {
         console.log('⚠️ No items to drop, skipping');
-        executeNextAction();
+        isExecutingAction = false;
+        setTimeout(() => executeNextAction(), 100);
       }
       break;
 
     case ACTION_TYPE.WAIT:
       console.log(`⏳ Waiting ${action.duration}ms...`);
+      // Clear guard and schedule next action
+      isExecutingAction = false;
       setTimeout(() => executeNextAction(), action.duration);
       break;
 
@@ -492,7 +507,8 @@ function executeNextAction() {
       console.log(`🚶 Wandering for ${action.duration}ms...`);
       // Enter search mode (wandering) for the specified duration
       startSearchMode();
-      // After duration, execute next action
+      // Clear guard and schedule next action after wandering
+      isExecutingAction = false;
       setTimeout(() => executeNextAction(), action.duration);
       break;
   }
@@ -626,7 +642,8 @@ function updateVisibility() {
   }
 
   // Check if we should retry a failed action now that visibility changed
-  if (retryCurrentAction && retryActionData && retryActionData.type === ACTION_TYPE.MOVE_TO) {
+  // ONLY retry if we're actually in search mode (not already moving to something)
+  if (retryCurrentAction && retryActionData && retryActionData.type === ACTION_TYPE.MOVE_TO && movementMode === 'search') {
     // Check if target type is now visible
     const targets = entities.filter(e => e.type === retryActionData.targetType && visibleEntities.has(e));
     if (targets.length > 0) {
@@ -637,8 +654,8 @@ function updateVisibility() {
       retryActionData = null;
       // Decrement action index to retry the same action
       currentActionIndex--;
-      // Exit search mode and execute the action
-      movementMode = 'move-to'; // This will be set properly by executeNextAction
+      // Clear guard and execute the action
+      isExecutingAction = false;
       executeNextAction();
     }
   }
@@ -771,11 +788,14 @@ function updateCharacterPosition() {
 
         // Decrement action index to retry the same action
         currentActionIndex--;
+        // Clear guard and retry
+        isExecutingAction = false;
         executeNextAction();
       } else {
         // No retry needed - shouldn't normally reach here with action sequence
         // But keep this as fallback
         console.log('⚠️ Search mode ended without retry context - this shouldn\'t happen!');
+        isExecutingAction = false;
         executeNextAction();
       }
       return;
@@ -840,7 +860,8 @@ function updateCharacterPosition() {
         }
       }
 
-      // If not collecting (can't collect or collection failed), execute next action
+      // If not collecting (can't collect or collection failed), clear guard and execute next action
+      isExecutingAction = false;
       setTimeout(() => executeNextAction(), 500);
       return;
     }
