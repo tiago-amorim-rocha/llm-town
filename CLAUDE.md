@@ -27,7 +27,7 @@ This is **not required** for the normal `claude/**` workflow, which handles vers
 ---
 
 ## Project Overview
-A 2D survival scene visualization with procedurally generated trees, grass, a bonfire, and character. Built as a Progressive Web App optimized for iOS devices.
+A 2D survival scene visualization with procedurally generated trees, grass, a bonfire, a character, and a wolf. Built as a Progressive Web App optimized for iOS devices. All art assets are stored as separate SVG files for easy editing.
 
 **Navigation**: Code uses section markers for easy navigation. Search for `// === SECTION NAME ===` patterns in code files. See "Code Structure" below for all markers.
 
@@ -39,9 +39,10 @@ A 2D survival scene visualization with procedurally generated trees, grass, a bo
 3. **Push to `claude/**` branch** - Workflow auto-updates `version.txt`, merges to `main`, and deploys
 
 ### Key Files
-- **`main.js`** - Scene rendering, entity system, tree/grass generation
+- **`main.js`** - Scene rendering, entity system, tree/grass generation, SVG loader
 - **`index.html`** - Entry point, cache busting loader, iOS optimizations
 - **`console.js`** - Debug console (🐛 button in bottom-right)
+- **`assets/`** - SVG art files for all game entities (tree, grass, bonfire, character, wolf)
 - **`version.txt`** - Cache-busting timestamp (auto-updated by git hook)
 - **`manifest.json`** - PWA config for iOS "Add to Home Screen"
 
@@ -55,8 +56,10 @@ Code is organized with clear section markers. Search for these to navigate:
 - Reload button in `index.html`
 
 **`// === SVG COMPONENTS ===`**
-- Reusable SVG generators: `tree`, `grass`, `bonfire`, `character`
-- Each accepts scale parameter
+- SVG art assets loaded from `./assets/` directory at startup
+- Async loader: `loadSVGComponents()` fetches all SVG files
+- Each component function accepts scale parameter
+- Components: `tree`, `grass`, `bonfire`, `character`, `wolf`
 - Layered shapes for visual depth
 
 **`// === ENTITY SYSTEM ===`**
@@ -177,13 +180,56 @@ s.src = `./main.js?v=${encodeURIComponent(version)}`;
 
 **To disable**: Remove `console.js` import from `main.js`
 
+## SVG Assets
+
+All game art is stored as separate SVG files in the `./assets/` directory. This keeps the code clean and makes art easier to edit.
+
+### Asset Structure
+```
+assets/
+├── tree.svg          # Forest tree (layered ellipses + trunk)
+├── grass.svg         # Grass patches (curved paths)
+├── bonfire.svg       # Campfire with flames
+├── character.svg     # Player character
+└── wolf.svg          # Wolf creature (side view)
+```
+
+### How It Works
+1. **Startup**: `loadSVGComponents()` fetches all SVG files asynchronously
+2. **Parsing**: SVG content is extracted and wrapped in scale transform
+3. **Usage**: Components accessed via `SVG_COMPONENTS[type](scale)`
+4. **Rendering**: Entity system uses these functions to render game objects
+
+### SVG File Format
+- Each SVG file is a standalone, complete SVG document
+- Use appropriate `viewBox` to center the art around origin
+- Keep designs relative to (0,0) center point for proper positioning
+- Use layered shapes for depth and visual appeal
+
 ## Common Tasks
 
 ### Add New Entity Type
-1. Find `// === SVG COMPONENTS ===` section
-2. Add new SVG generator to `SVG_COMPONENTS` object
-3. In `// === SCENE GENERATION ===`, create entity with `new Entity(type, x, y, scale)`
+1. **Create SVG file** in `./assets/` directory (e.g., `bear.svg`)
+   - Use proper viewBox centered around the entity
+   - Keep art centered at (0,0) for correct positioning
+2. **Register in main.js**: Add entry to `SVG_ASSETS` object
+   ```javascript
+   const SVG_ASSETS = {
+     // ... existing entries
+     bear: './assets/bear.svg'
+   };
+   ```
+3. **Use in scene**: In `// === SCENE GENERATION ===`, create entity
+   ```javascript
+   entities.push(new Entity('bear', x, y, scale));
+   ```
 4. Entities auto-render based on `type` property
+
+### Edit Existing Art
+1. Open the SVG file in `./assets/` (e.g., `./assets/wolf.svg`)
+2. Edit the SVG using any text editor or SVG editor
+3. Save and refresh - changes appear immediately (cache busting active)
+4. No need to modify `main.js` for art changes
 
 ### Adjust Tree Spacing
 1. Find `// --- Tree Placement ---` section
@@ -221,12 +267,19 @@ s.src = `./main.js?v=${encodeURIComponent(version)}`;
 │   └── cleanup-old-branches.yml  # Daily branch cleanup
 ├── .githooks/
 │   └── pre-commit                # Optional: auto-updates version.txt locally
+├── assets/                       # SVG art files
+│   ├── tree.svg                  # Tree sprite
+│   ├── grass.svg                 # Grass sprite
+│   ├── bonfire.svg               # Bonfire sprite
+│   ├── character.svg             # Character sprite
+│   └── wolf.svg                  # Wolf sprite
 ├── hooks/                        # Legacy - can be removed
 │   └── pre-commit                # Old hook location
 ├── install-hooks.sh              # Optional: git config core.hooksPath .githooks
 ├── index.html                    # Entry point + cache busting
-├── main.js                       # Scene logic, entities, rendering
+├── main.js                       # Scene logic, entities, rendering, SVG loader
 ├── console.js                    # Debug console module
+├── config.js                     # Game configuration values
 ├── manifest.json                 # PWA configuration
 ├── icon-512.svg                  # App icon
 ├── version.txt                   # Build version (auto-updated by GitHub Actions)
