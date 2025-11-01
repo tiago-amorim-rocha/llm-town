@@ -3,8 +3,10 @@
 
 import * as config from './config.js';
 import { Item, DummyEntity } from './entities.js';
+import { distance } from './utils.js';
 
 // Import configuration
+const COLLECTION_RANGE = config.COLLECTION_RANGE;
 const APPLE_COLLECTION_TIME = config.APPLE_COLLECTION_TIME;
 const BERRY_COLLECTION_TIME = config.BERRY_COLLECTION_TIME;
 
@@ -23,6 +25,13 @@ function executeCollect(smartEntity, target, itemType, callback) {
   // Validate target
   if (!target || !target.inventory) {
     callback({ success: false, reason: 'invalid_target' });
+    return;
+  }
+
+  // Check if entity is close enough to target
+  const dist = distance(smartEntity.x, smartEntity.y, target.x, target.y);
+  if (dist > COLLECTION_RANGE) {
+    callback({ success: false, reason: 'too_far', distance: dist });
     return;
   }
 

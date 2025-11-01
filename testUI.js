@@ -335,6 +335,8 @@ export function initTestUI(characterEntity, getEntities) {
       characterEntity.collect(target, itemType, (result) => {
         if (result.success) {
           showStatus(`✅ Collected ${itemType === 'apple' ? '🍎' : '🫐'}!`);
+        } else if (result.reason === 'too_far') {
+          showStatus(`❌ Too far (${Math.round(result.distance)}px)`);
         } else {
           showStatus(`❌ ${result.reason}`);
         }
@@ -351,6 +353,8 @@ export function initTestUI(characterEntity, getEntities) {
       characterEntity.collect(target, 'apple', (result) => {
         if (result.success) {
           showStatus('✅ Got apple! 🍎');
+        } else if (result.reason === 'too_far') {
+          showStatus(`❌ Too far (${Math.round(result.distance)}px)`);
         } else {
           showStatus(`❌ ${result.reason}`);
         }
@@ -367,6 +371,8 @@ export function initTestUI(characterEntity, getEntities) {
       characterEntity.collect(target, 'berry', (result) => {
         if (result.success) {
           showStatus('✅ Got berry! 🫐');
+        } else if (result.reason === 'too_far') {
+          showStatus(`❌ Too far (${Math.round(result.distance)}px)`);
         } else {
           showStatus(`❌ ${result.reason}`);
         }
