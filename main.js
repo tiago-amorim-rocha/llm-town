@@ -104,12 +104,49 @@ async function loadSVG(name, path) {
     // Get the inner content of the SVG (everything inside <svg>...</svg>)
     const innerContent = svgElement.innerHTML;
 
-    // Return a function that wraps the content with scale transform
-    return (scale = 1) => `<g transform="scale(${scale})">${innerContent}</g>`;
+    // Return a function that wraps the content with scale transform and adds state-based decorations
+    return (scale = 1, state = 0) => {
+      let decorations = '';
+
+      // Add berries to grass based on state
+      if (name === 'grass') {
+        if (state === 1) {
+          // Few berries (2-3 berries)
+          decorations = `
+            <circle cx="-5" cy="-10" r="1.2" fill="#8B2252"/>
+            <circle cx="3" cy="-12" r="1.2" fill="#8B2252"/>
+          `;
+        } else if (state === 2) {
+          // Lots of berries (5-6 berries)
+          decorations = `
+            <circle cx="-7" cy="-8" r="1.2" fill="#8B2252"/>
+            <circle cx="-3" cy="-12" r="1.2" fill="#8B2252"/>
+            <circle cx="1" cy="-10" r="1.2" fill="#8B2252"/>
+            <circle cx="5" cy="-14" r="1.2" fill="#8B2252"/>
+            <circle cx="7" cy="-9" r="1.2" fill="#8B2252"/>
+          `;
+        }
+      }
+
+      // Add apples to trees based on state
+      if (name === 'tree') {
+        const applePositions = [
+          { cx: -8, cy: -35 },   // Left side
+          { cx: 10, cy: -38 },   // Right side
+          { cx: -5, cy: -28 },   // Lower left
+        ];
+
+        for (let i = 0; i < state && i < applePositions.length; i++) {
+          decorations += `<circle cx="${applePositions[i].cx}" cy="${applePositions[i].cy}" r="3" fill="#DC143C"/>`;
+        }
+      }
+
+      return `<g transform="scale(${scale})">${innerContent}${decorations}</g>`;
+    };
   } catch (error) {
     console.error(`Error loading SVG ${name}:`, error);
     // Return a placeholder function that shows an error
-    return (scale = 1) => `<g transform="scale(${scale})"><text x="0" y="0" fill="red" font-size="12">Error: ${name}</text></g>`;
+    return (scale = 1, state = 0) => `<g transform="scale(${scale})"><text x="0" y="0" fill="red" font-size="12">Error: ${name}</text></g>`;
   }
 }
 
@@ -130,15 +167,16 @@ async function loadSVGComponents() {
 // ============================================================
 
 class Entity {
-  constructor(type, x, y, scale = 1) {
+  constructor(type, x, y, scale = 1, state = 0) {
     this.type = type;
     this.x = x;
     this.y = y;
     this.scale = scale;
+    this.state = state; // State for food items (berries on grass, apples on trees)
   }
 
   render() {
-    const svg = SVG_COMPONENTS[this.type](this.scale);
+    const svg = SVG_COMPONENTS[this.type](this.scale, this.state);
     return `<g transform="translate(${this.x}, ${this.y})">${svg}</g>`;
   }
 }
@@ -458,7 +496,9 @@ function initScene() {
       }
 
       if (!tooClose) {
-        entities.push(new Entity('tree', x, y, scale));
+        // Randomly assign 0-3 apples to the tree
+        const appleState = Math.floor(Math.random() * 4); // 0, 1, 2, or 3
+        entities.push(new Entity('tree', x, y, scale, appleState));
         placed = true;
       }
 
@@ -473,7 +513,9 @@ function initScene() {
     const x = Math.random() * width;
     const y = Math.random() * height;
     const scale = 0.45 + Math.random() * 0.6; // Scale between 0.45-1.05 (1.5x larger than before)
-    entities.push(new Entity('grass', x, y, scale));
+    // Randomly assign berry state: 0 (no berries), 1 (few berries), 2 (lots of berries)
+    const berryState = Math.floor(Math.random() * 3); // 0, 1, or 2
+    entities.push(new Entity('grass', x, y, scale, berryState));
   }
 
   // Sort entities by Y position for proper depth ordering

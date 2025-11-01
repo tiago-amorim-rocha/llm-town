@@ -1,5 +1,7 @@
-<svg viewBox="-7 -16 14 18" xmlns="http://www.w3.org/2000/svg">
-  <path d="M -5,0 Q -6,-8 -5,-12" stroke="#3d6b3d" stroke-width="1.5" fill="none"/>
-  <path d="M 0,0 Q -1,-10 0,-14" stroke="#4a7c4a" stroke-width="1.5" fill="none"/>
-  <path d="M 5,0 Q 6,-7 5,-11" stroke="#3d6b3d" stroke-width="1.5" fill="none"/>
+<svg viewBox="-12 -24 24 26" xmlns="http://www.w3.org/2000/svg">
+  <!-- Base grass blades - brighter green -->
+  <path d="M -8,0 Q -10,-12 -8,-18" stroke="#4a9d4a" stroke-width="2.5" fill="none"/>
+  <path d="M -3,0 Q -4,-14 -3,-20" stroke="#5cb85c" stroke-width="2.5" fill="none"/>
+  <path d="M 3,0 Q 2,-13 3,-19" stroke="#4a9d4a" stroke-width="2.5" fill="none"/>
+  <path d="M 8,0 Q 10,-11 8,-17" stroke="#5cb85c" stroke-width="2.5" fill="none"/>
 </svg>
