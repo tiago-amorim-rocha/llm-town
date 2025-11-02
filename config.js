@@ -63,8 +63,8 @@ export const BONFIRE_EXCLUSION_RADIUS = 75; // Trees won't spawn within this rad
 // GRASS GENERATION SETTINGS
 // ============================================================
 
-export const GRASS_COUNT_MIN = 5;
-export const GRASS_COUNT_MAX = 10;
+export const GRASS_COUNT_MIN = 8;
+export const GRASS_COUNT_MAX = 15;
 export const GRASS_RADIUS = 25;             // Approximate grass radius at scale 1.0 (for margins)
 
 // ============================================================
