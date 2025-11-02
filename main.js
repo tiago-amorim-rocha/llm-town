@@ -319,7 +319,8 @@ function initScene() {
   entities.sort((a, b) => a.y - b.y);
 
   // Initialize visibility
-  updateVisibility(entities);
+  // TEMPORARILY DISABLED FOR TESTING
+  // updateVisibility(entities);
 
   render(canvas, entities, SVG_COMPONENTS, getCharacterSVG, characterEntity);
 }
@@ -337,7 +338,8 @@ function gameLoop(timestamp) {
   // Re-sort entities by Y position
   entities.sort((a, b) => a.y - b.y);
 
-  updateVisibility(entities);
+  // TEMPORARILY DISABLED FOR TESTING
+  // updateVisibility(entities);
   render(canvas, entities, SVG_COMPONENTS, getCharacterSVG, characterEntity);
 
   // Request next frame (runs at monitor refresh rate, typically 60fps)
@@ -359,6 +361,7 @@ async function init() {
   console.log('✨ Initializing survival scene...');
 
   initReloadButton();
+  showReloadButton(); // TEMPORARILY ALWAYS SHOW FOR TESTING
   setInterval(checkForNewVersion, VERSION_CHECK_INTERVAL);
   console.log(`🔍 Version checking enabled (every ${VERSION_CHECK_INTERVAL / 1000}s)`);
 
