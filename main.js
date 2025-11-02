@@ -153,6 +153,8 @@ function initScene() {
   const width = window.innerWidth;
   const height = window.innerHeight;
 
+  console.log(`📺 Screen size: ${width}px × ${height}px`);
+
   // Clear existing entities and movement state
   entities = [];
   clearMovementState();
