@@ -197,24 +197,7 @@ function initScene() {
   entities.push(wolfEntity);
   initMovementState(wolfEntity);
 
-  // Generate cluster centers for clumping trees and grass
-  const clusterCount = config.CLUSTER_COUNT_MIN + Math.floor(Math.random() * (config.CLUSTER_COUNT_MAX - config.CLUSTER_COUNT_MIN + 1));
-  const clusters = [];
-
-  for (let i = 0; i < clusterCount; i++) {
-    // Apply edge margin to cluster centers
-    const clusterX = config.EDGE_MARGIN + Math.random() * (width - 2 * config.EDGE_MARGIN);
-    const clusterY = config.EDGE_MARGIN + Math.random() * (height * 0.8 - 2 * config.EDGE_MARGIN);
-
-    // Ensure cluster is not too close to bonfire
-    const distToBonfire = Math.sqrt((clusterX - bonfireX) ** 2 + (clusterY - bonfireY) ** 2);
-    const maxClusterRadius = Math.max(config.CLUSTER_RADIUS_HORIZONTAL, config.CLUSTER_RADIUS_VERTICAL);
-    if (distToBonfire > config.BONFIRE_EXCLUSION_RADIUS + maxClusterRadius * 0.5) {
-      clusters.push({ x: clusterX, y: clusterY });
-    }
-  }
-
-  // Generate trees with clumping
+  // Generate trees
   const treeCount = config.TREE_COUNT_MIN + Math.floor(Math.random() * (config.TREE_COUNT_MAX - config.TREE_COUNT_MIN + 1));
   const minHorizontalSpacing = config.MIN_HORIZONTAL_SPACING;
   const minVerticalSpacing = config.MIN_VERTICAL_SPACING;
@@ -225,28 +208,9 @@ function initScene() {
     let attempts = 0;
 
     while (!placed && attempts < maxAttempts) {
-      let x, y;
-
-      // Decide if this tree should be in a cluster or placed randomly
-      const useCluster = clusters.length > 0 && Math.random() < config.CLUMP_PROBABILITY;
-
-      if (useCluster) {
-        // Pick a random cluster and place tree near it (elliptical, horizontal preference)
-        const cluster = clusters[Math.floor(Math.random() * clusters.length)];
-        const angle = Math.random() * Math.PI * 2;
-        const distanceRatio = Math.random(); // 0 to 1
-        x = cluster.x + Math.cos(angle) * distanceRatio * config.CLUSTER_RADIUS_HORIZONTAL;
-        y = cluster.y + Math.sin(angle) * distanceRatio * config.CLUSTER_RADIUS_VERTICAL;
-
-        // Clamp to screen bounds with margin
-        x = Math.max(config.EDGE_MARGIN, Math.min(width - config.EDGE_MARGIN, x));
-        y = Math.max(config.EDGE_MARGIN, Math.min(height * 0.8 - config.EDGE_MARGIN, y));
-      } else {
-        // Place randomly with edge margin
-        x = config.EDGE_MARGIN + Math.random() * (width - 2 * config.EDGE_MARGIN);
-        y = config.EDGE_MARGIN + Math.random() * (height * 0.8 - 2 * config.EDGE_MARGIN);
-      }
-
+      // Pure random placement with edge margin
+      const x = config.EDGE_MARGIN + Math.random() * (width - 2 * config.EDGE_MARGIN);
+      const y = config.EDGE_MARGIN + Math.random() * (height * 0.8 - 2 * config.EDGE_MARGIN);
       const scale = 0.8 + Math.random() * 0.4;
 
       const distToBonfire = Math.sqrt((x - bonfireX) ** 2 + (y - bonfireY) ** 2);
@@ -282,31 +246,12 @@ function initScene() {
     }
   }
 
-  // Generate grass with clumping
+  // Generate grass
   const grassCount = config.GRASS_COUNT_MIN + Math.floor(Math.random() * (config.GRASS_COUNT_MAX - config.GRASS_COUNT_MIN + 1));
   for (let i = 0; i < grassCount; i++) {
-    let x, y;
-
-    // Decide if this grass should be in a cluster or placed randomly
-    const useCluster = clusters.length > 0 && Math.random() < config.CLUMP_PROBABILITY;
-
-    if (useCluster) {
-      // Pick a random cluster and place grass near it (elliptical, horizontal preference)
-      const cluster = clusters[Math.floor(Math.random() * clusters.length)];
-      const angle = Math.random() * Math.PI * 2;
-      const distanceRatio = Math.random(); // 0 to 1
-      x = cluster.x + Math.cos(angle) * distanceRatio * config.CLUSTER_RADIUS_HORIZONTAL;
-      y = cluster.y + Math.sin(angle) * distanceRatio * config.CLUSTER_RADIUS_VERTICAL;
-
-      // Clamp to screen bounds with margin
-      x = Math.max(config.EDGE_MARGIN, Math.min(width - config.EDGE_MARGIN, x));
-      y = Math.max(config.EDGE_MARGIN, Math.min(height - config.EDGE_MARGIN, y));
-    } else {
-      // Place randomly with edge margin
-      x = config.EDGE_MARGIN + Math.random() * (width - 2 * config.EDGE_MARGIN);
-      y = config.EDGE_MARGIN + Math.random() * (height - 2 * config.EDGE_MARGIN);
-    }
-
+    // Pure random placement with edge margin
+    const x = config.EDGE_MARGIN + Math.random() * (width - 2 * config.EDGE_MARGIN);
+    const y = config.EDGE_MARGIN + Math.random() * (height - 2 * config.EDGE_MARGIN);
     const scale = 0.7 + Math.random() * 0.35;
 
     const grass = new DummyEntity('grass', x, y, scale, 5);
