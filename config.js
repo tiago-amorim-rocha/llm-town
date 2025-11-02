@@ -73,8 +73,10 @@ export const GRASS_COUNT_MAX = 10;
 
 export const CLUSTER_COUNT_MIN = 2;         // Minimum number of clusters
 export const CLUSTER_COUNT_MAX = 3;         // Maximum number of clusters
-export const CLUSTER_RADIUS = 120;          // Radius around cluster center (pixels)
+export const CLUSTER_RADIUS_HORIZONTAL = 150; // Horizontal radius around cluster center (pixels)
+export const CLUSTER_RADIUS_VERTICAL = 80;    // Vertical radius around cluster center (pixels) - tighter
 export const CLUMP_PROBABILITY = 0.9;       // Probability (0-1) that entity spawns in a cluster vs randomly
+export const EDGE_MARGIN = 100;             // Minimum distance from screen edges (pixels)
 
 // ============================================================
 // COLLECTION SETTINGS

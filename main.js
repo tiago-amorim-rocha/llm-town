@@ -202,12 +202,14 @@ function initScene() {
   const clusters = [];
 
   for (let i = 0; i < clusterCount; i++) {
-    const clusterX = Math.random() * width;
-    const clusterY = Math.random() * height * 0.8;
+    // Apply edge margin to cluster centers
+    const clusterX = config.EDGE_MARGIN + Math.random() * (width - 2 * config.EDGE_MARGIN);
+    const clusterY = config.EDGE_MARGIN + Math.random() * (height * 0.8 - 2 * config.EDGE_MARGIN);
 
     // Ensure cluster is not too close to bonfire
     const distToBonfire = Math.sqrt((clusterX - bonfireX) ** 2 + (clusterY - bonfireY) ** 2);
-    if (distToBonfire > config.BONFIRE_EXCLUSION_RADIUS + config.CLUSTER_RADIUS * 0.5) {
+    const maxClusterRadius = Math.max(config.CLUSTER_RADIUS_HORIZONTAL, config.CLUSTER_RADIUS_VERTICAL);
+    if (distToBonfire > config.BONFIRE_EXCLUSION_RADIUS + maxClusterRadius * 0.5) {
       clusters.push({ x: clusterX, y: clusterY });
     }
   }
@@ -229,20 +231,20 @@ function initScene() {
       const useCluster = clusters.length > 0 && Math.random() < config.CLUMP_PROBABILITY;
 
       if (useCluster) {
-        // Pick a random cluster and place tree near it
+        // Pick a random cluster and place tree near it (elliptical, horizontal preference)
         const cluster = clusters[Math.floor(Math.random() * clusters.length)];
         const angle = Math.random() * Math.PI * 2;
-        const distance = Math.random() * config.CLUSTER_RADIUS;
-        x = cluster.x + Math.cos(angle) * distance;
-        y = cluster.y + Math.sin(angle) * distance;
+        const distanceRatio = Math.random(); // 0 to 1
+        x = cluster.x + Math.cos(angle) * distanceRatio * config.CLUSTER_RADIUS_HORIZONTAL;
+        y = cluster.y + Math.sin(angle) * distanceRatio * config.CLUSTER_RADIUS_VERTICAL;
 
-        // Clamp to screen bounds
-        x = Math.max(0, Math.min(width, x));
-        y = Math.max(0, Math.min(height * 0.8, y));
+        // Clamp to screen bounds with margin
+        x = Math.max(config.EDGE_MARGIN, Math.min(width - config.EDGE_MARGIN, x));
+        y = Math.max(config.EDGE_MARGIN, Math.min(height * 0.8 - config.EDGE_MARGIN, y));
       } else {
-        // Place randomly
-        x = Math.random() * width;
-        y = Math.random() * height * 0.8;
+        // Place randomly with edge margin
+        x = config.EDGE_MARGIN + Math.random() * (width - 2 * config.EDGE_MARGIN);
+        y = config.EDGE_MARGIN + Math.random() * (height * 0.8 - 2 * config.EDGE_MARGIN);
       }
 
       const scale = 0.8 + Math.random() * 0.4;
@@ -289,20 +291,20 @@ function initScene() {
     const useCluster = clusters.length > 0 && Math.random() < config.CLUMP_PROBABILITY;
 
     if (useCluster) {
-      // Pick a random cluster and place grass near it
+      // Pick a random cluster and place grass near it (elliptical, horizontal preference)
       const cluster = clusters[Math.floor(Math.random() * clusters.length)];
       const angle = Math.random() * Math.PI * 2;
-      const distance = Math.random() * config.CLUSTER_RADIUS;
-      x = cluster.x + Math.cos(angle) * distance;
-      y = cluster.y + Math.sin(angle) * distance;
+      const distanceRatio = Math.random(); // 0 to 1
+      x = cluster.x + Math.cos(angle) * distanceRatio * config.CLUSTER_RADIUS_HORIZONTAL;
+      y = cluster.y + Math.sin(angle) * distanceRatio * config.CLUSTER_RADIUS_VERTICAL;
 
-      // Clamp to screen bounds
-      x = Math.max(0, Math.min(width, x));
-      y = Math.max(0, Math.min(height, y));
+      // Clamp to screen bounds with margin
+      x = Math.max(config.EDGE_MARGIN, Math.min(width - config.EDGE_MARGIN, x));
+      y = Math.max(config.EDGE_MARGIN, Math.min(height - config.EDGE_MARGIN, y));
     } else {
-      // Place randomly
-      x = Math.random() * width;
-      y = Math.random() * height;
+      // Place randomly with edge margin
+      x = config.EDGE_MARGIN + Math.random() * (width - 2 * config.EDGE_MARGIN);
+      y = config.EDGE_MARGIN + Math.random() * (height - 2 * config.EDGE_MARGIN);
     }
 
     const scale = 0.7 + Math.random() * 0.35;
