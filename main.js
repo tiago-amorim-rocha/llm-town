@@ -261,7 +261,7 @@ function initScene() {
     const y = grassRadius + Math.random() * (height - 2 * grassRadius);
 
     const grass = new DummyEntity('grass', x, y, scale, 5);
-    const berryCount = Math.floor(Math.random() * 6);
+    const berryCount = Math.floor(Math.random() * 4); // 0-3 berries, same as apples
     for (let j = 0; j < berryCount; j++) {
       grass.inventory.addItem(new Item('berry'));
     }
