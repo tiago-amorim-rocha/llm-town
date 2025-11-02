@@ -55,8 +55,7 @@ export const SEARCH_MODE_DURATION = 10000;      // Search mode duration in milli
 
 export const TREE_COUNT_MIN = 5;
 export const TREE_COUNT_MAX = 7;
-export const MIN_HORIZONTAL_SPACING = 80;   // Minimum horizontal distance between trees
-export const MIN_VERTICAL_SPACING = 150;    // Minimum vertical distance between trees
+export const TREE_RADIUS = 40;              // Approximate tree radius at scale 1.0 (for collision/margins)
 export const MAX_PLACEMENT_ATTEMPTS = 50;   // Max attempts to place each tree
 export const BONFIRE_EXCLUSION_RADIUS = 75; // Trees won't spawn within this radius of bonfire
 
@@ -66,17 +65,7 @@ export const BONFIRE_EXCLUSION_RADIUS = 75; // Trees won't spawn within this rad
 
 export const GRASS_COUNT_MIN = 5;
 export const GRASS_COUNT_MAX = 10;
-
-// ============================================================
-// CLUMPING SETTINGS
-// ============================================================
-
-export const CLUSTER_COUNT_MIN = 2;         // Minimum number of clusters
-export const CLUSTER_COUNT_MAX = 3;         // Maximum number of clusters
-export const CLUSTER_RADIUS_HORIZONTAL = 150; // Horizontal radius around cluster center (pixels)
-export const CLUSTER_RADIUS_VERTICAL = 80;    // Vertical radius around cluster center (pixels) - tighter
-export const CLUMP_PROBABILITY = 0.9;       // Probability (0-1) that entity spawns in a cluster vs randomly
-export const EDGE_MARGIN = 100;             // Minimum distance from screen edges (pixels)
+export const GRASS_RADIUS = 25;             // Approximate grass radius at scale 1.0 (for margins)
 
 // ============================================================
 // COLLECTION SETTINGS

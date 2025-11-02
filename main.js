@@ -201,8 +201,6 @@ function initScene() {
 
   // Generate trees
   const treeCount = config.TREE_COUNT_MIN + Math.floor(Math.random() * (config.TREE_COUNT_MAX - config.TREE_COUNT_MIN + 1));
-  const minHorizontalSpacing = config.MIN_HORIZONTAL_SPACING;
-  const minVerticalSpacing = config.MIN_VERTICAL_SPACING;
   const maxAttempts = config.MAX_PLACEMENT_ATTEMPTS;
 
   for (let i = 0; i < treeCount; i++) {
@@ -210,10 +208,12 @@ function initScene() {
     let attempts = 0;
 
     while (!placed && attempts < maxAttempts) {
-      // Pure random placement with edge margin
-      const x = config.EDGE_MARGIN + Math.random() * (width - 2 * config.EDGE_MARGIN);
-      const y = config.EDGE_MARGIN + Math.random() * (height * 0.8 - 2 * config.EDGE_MARGIN);
       const scale = 0.8 + Math.random() * 0.4;
+      const treeRadius = config.TREE_RADIUS * scale;
+
+      // Random placement with dynamic edge margin based on tree size
+      const x = treeRadius + Math.random() * (width - 2 * treeRadius);
+      const y = treeRadius + Math.random() * (height * 0.8 - 2 * treeRadius);
 
       const distToBonfire = Math.sqrt((x - bonfireX) ** 2 + (y - bonfireY) ** 2);
       if (distToBonfire <= config.BONFIRE_EXCLUSION_RADIUS) {
@@ -221,20 +221,22 @@ function initScene() {
         continue;
       }
 
-      let tooClose = false;
+      // Check overlap with other trees
+      let overlapping = false;
       for (const entity of entities) {
         if (entity.type === 'tree') {
-          const dx = Math.abs(x - entity.x);
-          const dy = Math.abs(y - entity.y);
+          const otherRadius = config.TREE_RADIUS * entity.scale;
+          const distance = Math.sqrt((x - entity.x) ** 2 + (y - entity.y) ** 2);
+          const minDistance = treeRadius + otherRadius;
 
-          if (dx < minHorizontalSpacing && dy < minVerticalSpacing) {
-            tooClose = true;
+          if (distance < minDistance) {
+            overlapping = true;
             break;
           }
         }
       }
 
-      if (!tooClose) {
+      if (!overlapping) {
         const tree = new DummyEntity('tree', x, y, scale, 3);
         const appleCount = Math.floor(Math.random() * 4);
         for (let j = 0; j < appleCount; j++) {
@@ -251,10 +253,12 @@ function initScene() {
   // Generate grass
   const grassCount = config.GRASS_COUNT_MIN + Math.floor(Math.random() * (config.GRASS_COUNT_MAX - config.GRASS_COUNT_MIN + 1));
   for (let i = 0; i < grassCount; i++) {
-    // Pure random placement with edge margin
-    const x = config.EDGE_MARGIN + Math.random() * (width - 2 * config.EDGE_MARGIN);
-    const y = config.EDGE_MARGIN + Math.random() * (height - 2 * config.EDGE_MARGIN);
     const scale = 0.7 + Math.random() * 0.35;
+    const grassRadius = config.GRASS_RADIUS * scale;
+
+    // Random placement with dynamic edge margin based on grass size
+    const x = grassRadius + Math.random() * (width - 2 * grassRadius);
+    const y = grassRadius + Math.random() * (height - 2 * grassRadius);
 
     const grass = new DummyEntity('grass', x, y, scale, 5);
     const berryCount = Math.floor(Math.random() * 6);
