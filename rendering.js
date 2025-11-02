@@ -18,8 +18,9 @@ export function render(canvas, entities, SVG_COMPONENTS, getCharacterSVG, charac
   const friendlyVisibleEntities = getFriendlyVisibleEntities(entities);
 
   // Render visible entities (only what friendly entities can see)
+  // TEMPORARILY SHOW ALL ENTITIES FOR TESTING
   const visibleEntitySVG = entities
-    .filter(e => friendlyVisibleEntities.has(e))
+    // .filter(e => friendlyVisibleEntities.has(e))
     .map(e => {
       if (e instanceof SmartEntity) {
         return e.render(SVG_COMPONENTS, getCharacterSVG);
