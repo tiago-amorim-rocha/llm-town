@@ -5,31 +5,18 @@
 
 **Good news: version.txt updates are now FULLY AUTOMATED via GitHub Actions!**
 
-**Two workflows ensure cache busting always works:**
+**The workflow is simple:**
 
 1. **Push to `claude/**` branches** (recommended workflow):
-   - Updates `version.txt` with timestamp
-   - Commits to your branch
-   - Merges to `main` and deploys
+   - Merges to `main` automatically
+   - version.txt updates on `main` after merge
+   - Deploys immediately
 
-2. **Push directly to `main`** (now also automated!):
-   - Detects non-merge commits
-   - Auto-updates `version.txt`
+2. **Push directly to `main`**:
+   - Auto-updates `version.txt` with timestamp
    - Commits and pushes the change
 
-**No manual setup required!** Whether you use `claude/**` branches or commit directly to `main`, version.txt updates automatically.
-
----
-
-### 🔧 Optional: Local Pre-commit Hook
-
-For offline development or testing, you can optionally install a local hook:
-
-```bash
-./install-hooks.sh
-```
-
-This is **not required** - both GitHub workflows handle versioning automatically.
+**No manual setup required!** All version.txt updates happen on the `main` branch only, eliminating rebase conflicts.
 
 ---
 
@@ -42,15 +29,15 @@ A 2D survival scene visualization with procedurally generated trees, grass, a bo
 
 ### Making Changes
 1. **Edit code** - Main logic is in `main.js`
-2. **Commit** - Commit your changes (version.txt will be handled by GitHub Actions)
-3. **Push to `claude/**` branch** - Workflow auto-updates `version.txt`, merges to `main`, and deploys
+2. **Commit** - Commit your changes
+3. **Push to `claude/**` branch** - Workflow merges to `main`, then updates `version.txt`, and deploys
 
 ### Key Files
 - **`main.js`** - Scene rendering, entity system, tree/grass generation, SVG loader
 - **`index.html`** - Entry point, cache busting loader, iOS optimizations
 - **`console.js`** - Debug console (🐛 button in bottom-right)
 - **`assets/`** - SVG art files for all game entities (tree, grass, bonfire, character, wolf)
-- **`version.txt`** - Cache-busting timestamp (auto-updated by git hook)
+- **`version.txt`** - Cache-busting timestamp (auto-updated by GitHub Actions)
 - **`manifest.json`** - PWA config for iOS "Add to Home Screen"
 
 ### Code Structure (main.js)
@@ -107,48 +94,31 @@ Main scene setup in `initScene()`:
 **Trigger**: Push to any `claude/**` branch
 
 **What it does:**
-1. **Updates version.txt** - Generates timestamp and commits to your branch
-2. **Merges to main** - Automatically merges your branch into `main`
-3. **Deploys** - GitHub Pages serves the new version immediately
+1. **Merges to main** - Automatically merges your branch into `main`
+2. **Deploys** - GitHub Pages serves the new version immediately
+
+**Note:** version.txt is NOT updated on feature branches, eliminating rebase conflicts.
+
+### ✅ Auto-versioning on Main
+**File**: `.github/workflows/version-on-main.yml`
+**Trigger**: Push to `main` branch
+
+**What it does:**
+1. **Updates version.txt** - Generates timestamp with milliseconds
+2. **Commits automatically** - Pushes version.txt update to main
+3. **Deploys** - Triggers cache busting for all clients
 
 **Version update logic:**
 ```bash
 # Generates millisecond timestamp
 date +%s%3N > version.txt
-# Commits and pushes to claude/** branch
-# Then merges to main
+# Commits and pushes to main
 ```
-
-### ✅ Auto-versioning on Main (direct commits)
-**File**: `.github/workflows/version-on-main.yml`
-**Trigger**: Push to `main` branch
-
-**What it does:**
-1. **Checks commit type** - Detects if it's a merge or direct commit
-2. **Updates version.txt** - For non-merge commits, generates new timestamp
-3. **Commits automatically** - Pushes version.txt update to main
 
 **Why this matters:**
-- ✅ Direct commits to `main` now auto-update version.txt
-- ✅ Skips merge commits (avoids conflicts with autopromote workflow)
-- ✅ Ensures cache busting works regardless of workflow
-
-**Version detection logic:**
-```bash
-# Checks if commit has multiple parents (merge)
-PARENT_COUNT=$(git cat-file -p HEAD | grep '^parent ' | wc -l)
-# Only updates version.txt if PARENT_COUNT == 1 (direct commit)
-```
-
-### ⚙️ Local Pre-commit Hook (optional)
-**File**: `.githooks/pre-commit` (tracked in git)
-**Purpose**: Updates `version.txt` for offline development
-**Setup**: `./install-hooks.sh` (runs `git config core.hooksPath .githooks`)
-
-**When needed:**
-- Offline development without GitHub Actions
-- Not required for normal workflow (GitHub Actions handle everything)
-- Immune to being "lost" (hook file is tracked in git)
+- ✅ All version.txt updates happen on `main` only
+- ✅ Feature branches never get version.txt updates
+- ✅ No rebase conflicts when making multiple commits
 
 ### ✅ Branch Cleanup
 **File**: `.github/workflows/cleanup-old-branches.yml`
@@ -285,24 +255,28 @@ assets/
 ```
 .
 ├── .github/workflows/
-│   ├── autopromote.yml           # Auto-merge claude/** → main + version.txt update
-│   ├── version-on-main.yml       # Auto-update version.txt on direct main commits
+│   ├── autopromote.yml           # Auto-merge claude/** → main
+│   ├── version-on-main.yml       # Auto-update version.txt on main
 │   └── cleanup-old-branches.yml  # Daily branch cleanup
-├── .githooks/
-│   └── pre-commit                # Optional: auto-updates version.txt locally
 ├── assets/                       # SVG art files
 │   ├── tree.svg                  # Tree sprite
 │   ├── grass.svg                 # Grass sprite
 │   ├── bonfire.svg               # Bonfire sprite
 │   ├── character.svg             # Character sprite
-│   └── wolf.svg                  # Wolf sprite
-├── hooks/                        # Legacy - can be removed
-│   └── pre-commit                # Old hook location
-├── install-hooks.sh              # Optional: git config core.hooksPath .githooks
+│   ├── wolf.svg                  # Wolf sprite
+│   ├── apple.svg                 # Apple item
+│   └── berry.svg                 # Berry item
 ├── index.html                    # Entry point + cache busting
 ├── main.js                       # Scene logic, entities, rendering, SVG loader
 ├── console.js                    # Debug console module
 ├── config.js                     # Game configuration values
+├── entities.js                   # Entity classes (Entity, DummyEntity, SmartEntity)
+├── actions.js                    # Entity action system
+├── visibility.js                 # Visibility/fog of war system
+├── movement.js                   # Entity movement system
+├── rendering.js                  # SVG rendering module
+├── cycle.js                      # Day/night cycle system
+├── testUI.js                     # Test UI for debugging
 ├── manifest.json                 # PWA configuration
 ├── icon-512.svg                  # App icon
 ├── version.txt                   # Build version (auto-updated by GitHub Actions)
