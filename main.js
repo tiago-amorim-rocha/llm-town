@@ -197,7 +197,22 @@ function initScene() {
   entities.push(wolfEntity);
   initMovementState(wolfEntity);
 
-  // Generate trees
+  // Generate cluster centers for clumping trees and grass
+  const clusterCount = config.CLUSTER_COUNT_MIN + Math.floor(Math.random() * (config.CLUSTER_COUNT_MAX - config.CLUSTER_COUNT_MIN + 1));
+  const clusters = [];
+
+  for (let i = 0; i < clusterCount; i++) {
+    const clusterX = Math.random() * width;
+    const clusterY = Math.random() * height * 0.8;
+
+    // Ensure cluster is not too close to bonfire
+    const distToBonfire = Math.sqrt((clusterX - bonfireX) ** 2 + (clusterY - bonfireY) ** 2);
+    if (distToBonfire > config.BONFIRE_EXCLUSION_RADIUS + config.CLUSTER_RADIUS * 0.5) {
+      clusters.push({ x: clusterX, y: clusterY });
+    }
+  }
+
+  // Generate trees with clumping
   const treeCount = config.TREE_COUNT_MIN + Math.floor(Math.random() * (config.TREE_COUNT_MAX - config.TREE_COUNT_MIN + 1));
   const minHorizontalSpacing = config.MIN_HORIZONTAL_SPACING;
   const minVerticalSpacing = config.MIN_VERTICAL_SPACING;
@@ -208,8 +223,28 @@ function initScene() {
     let attempts = 0;
 
     while (!placed && attempts < maxAttempts) {
-      const x = Math.random() * width;
-      const y = Math.random() * height * 0.8;
+      let x, y;
+
+      // Decide if this tree should be in a cluster or placed randomly
+      const useCluster = clusters.length > 0 && Math.random() < config.CLUMP_PROBABILITY;
+
+      if (useCluster) {
+        // Pick a random cluster and place tree near it
+        const cluster = clusters[Math.floor(Math.random() * clusters.length)];
+        const angle = Math.random() * Math.PI * 2;
+        const distance = Math.random() * config.CLUSTER_RADIUS;
+        x = cluster.x + Math.cos(angle) * distance;
+        y = cluster.y + Math.sin(angle) * distance;
+
+        // Clamp to screen bounds
+        x = Math.max(0, Math.min(width, x));
+        y = Math.max(0, Math.min(height * 0.8, y));
+      } else {
+        // Place randomly
+        x = Math.random() * width;
+        y = Math.random() * height * 0.8;
+      }
+
       const scale = 0.8 + Math.random() * 0.4;
 
       const distToBonfire = Math.sqrt((x - bonfireX) ** 2 + (y - bonfireY) ** 2);
@@ -245,11 +280,31 @@ function initScene() {
     }
   }
 
-  // Generate grass
+  // Generate grass with clumping
   const grassCount = config.GRASS_COUNT_MIN + Math.floor(Math.random() * (config.GRASS_COUNT_MAX - config.GRASS_COUNT_MIN + 1));
   for (let i = 0; i < grassCount; i++) {
-    const x = Math.random() * width;
-    const y = Math.random() * height;
+    let x, y;
+
+    // Decide if this grass should be in a cluster or placed randomly
+    const useCluster = clusters.length > 0 && Math.random() < config.CLUMP_PROBABILITY;
+
+    if (useCluster) {
+      // Pick a random cluster and place grass near it
+      const cluster = clusters[Math.floor(Math.random() * clusters.length)];
+      const angle = Math.random() * Math.PI * 2;
+      const distance = Math.random() * config.CLUSTER_RADIUS;
+      x = cluster.x + Math.cos(angle) * distance;
+      y = cluster.y + Math.sin(angle) * distance;
+
+      // Clamp to screen bounds
+      x = Math.max(0, Math.min(width, x));
+      y = Math.max(0, Math.min(height, y));
+    } else {
+      // Place randomly
+      x = Math.random() * width;
+      y = Math.random() * height;
+    }
+
     const scale = 0.7 + Math.random() * 0.35;
 
     const grass = new DummyEntity('grass', x, y, scale, 5);
