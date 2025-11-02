@@ -71,10 +71,10 @@ export const GRASS_COUNT_MAX = 10;
 // CLUMPING SETTINGS
 // ============================================================
 
-export const CLUSTER_COUNT_MIN = 3;         // Minimum number of clusters
-export const CLUSTER_COUNT_MAX = 5;         // Maximum number of clusters
-export const CLUSTER_RADIUS = 200;          // Radius around cluster center (pixels)
-export const CLUMP_PROBABILITY = 0.75;      // Probability (0-1) that entity spawns in a cluster vs randomly
+export const CLUSTER_COUNT_MIN = 2;         // Minimum number of clusters
+export const CLUSTER_COUNT_MAX = 3;         // Maximum number of clusters
+export const CLUSTER_RADIUS = 120;          // Radius around cluster center (pixels)
+export const CLUMP_PROBABILITY = 0.9;       // Probability (0-1) that entity spawns in a cluster vs randomly
 
 // ============================================================
 // COLLECTION SETTINGS
