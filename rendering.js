@@ -78,8 +78,33 @@ export function render(canvas, entities, SVG_COMPONENTS, getCharacterSVG, charac
         inventoryDisplay += `<g transform="translate(${itemX}, ${itemY})">${SVG_COMPONENTS['apple'](itemScale)}</g>`;
       } else if (item.type === 'berry') {
         inventoryDisplay += `<g transform="translate(${itemX}, ${itemY})">${SVG_COMPONENTS['berry'](itemScale)}</g>`;
+      } else if (item.type === 'stick') {
+        inventoryDisplay += `<g transform="translate(${itemX}, ${itemY})">${SVG_COMPONENTS['stick'](itemScale)}</g>`;
       }
     });
+  }
+
+  // Render fuel bars for bonfires
+  let fuelBars = '';
+  for (const entity of entities) {
+    if (entity.type === 'bonfire' && entity.fuel !== undefined) {
+      const fuelPercent = (entity.fuel / entity.maxFuel) * 100;
+      const barWidth = 60;
+      const barHeight = 6;
+      const barX = entity.x - barWidth / 2;
+      const barY = entity.y + 35; // Below bonfire
+
+      // Background bar
+      fuelBars += `<rect x="${barX}" y="${barY}" width="${barWidth}" height="${barHeight}" fill="#1a1d23" stroke="#333" stroke-width="1" rx="3"/>`;
+
+      // Fuel level (color changes based on level)
+      let fuelColor = '#ff9800'; // Orange
+      if (fuelPercent < 30) fuelColor = '#e74c3c'; // Red when low
+      else if (fuelPercent > 70) fuelColor = '#f39c12'; // Yellow when high
+
+      const fuelWidth = (barWidth - 2) * (fuelPercent / 100);
+      fuelBars += `<rect x="${barX + 1}" y="${barY + 1}" width="${fuelWidth}" height="${barHeight - 2}" fill="${fuelColor}" rx="2"/>`;
+    }
   }
 
   canvas.innerHTML = `
@@ -98,6 +123,9 @@ export function render(canvas, entities, SVG_COMPONENTS, getCharacterSVG, charac
 
       <!-- Inventory display -->
       ${inventoryDisplay}
+
+      <!-- Bonfire fuel bars -->
+      ${fuelBars}
 
       <!-- Darkness overlay for night -->
       <rect width="100%" height="100%" fill="#000000" opacity="${darknessOpacity}" pointer-events="none"/>
