@@ -2,6 +2,7 @@
 // Classes for game entities: Item, Inventory, Entity, DummyEntity, SmartEntity
 
 import { distance, easeInOutCubic } from './utils.js';
+import { initNeeds } from './needs.js';
 
 // ============================================================
 // ITEM AND INVENTORY CLASSES
@@ -145,6 +146,11 @@ export class SmartEntity extends Entity {
     // Movement action state
     this.currentMovementAction = null; // 'wandering', 'moving_to', null
     this.movementActionData = {}; // Data for current movement action
+
+    // Needs system (hunger, tiredness, cold, HP)
+    initNeeds(this);
+    this.isSleeping = false; // Sleep state
+    this.isRunning = false;  // Running state (for tiredness calculation)
   }
 
   // Calculate what this entity can see

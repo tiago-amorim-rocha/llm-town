@@ -3,6 +3,7 @@
 
 import * as config from './config.js';
 import { randomDirection } from './utils.js';
+import * as needs from './needs.js';
 
 // Movement configuration
 const MOVEMENT_SPEED = config.MOVEMENT_SPEED;
@@ -28,6 +29,16 @@ export function updateEntityPosition(entity, isCollecting = false, deltaTime = 1
     return;
   }
 
+  // If sleeping, don't move
+  if (entity.isSleeping) {
+    return;
+  }
+
+  // If dead, don't move
+  if (entity.isDead) {
+    return;
+  }
+
   // Only move if entity has an active movement action
   if (!entity.currentMovementAction) {
     return; // Stay still - default state is stationary
@@ -49,8 +60,17 @@ function applyWanderingMovement(entity, deltaTime) {
   }
   const state = entityMovementState.get(entity);
 
-  // Use time-based movement
-  const currentSpeed = MOVEMENT_SPEED * deltaTime;
+  // Apply speed multipliers based on needs
+  let speedMultiplier = 1.0;
+
+  // Apply tiredness penalty if entity has needs system
+  if (entity.tiredness !== undefined) {
+    speedMultiplier *= needs.getSpeedMultiplier(entity);
+    entity.isRunning = false; // Not running during wander
+  }
+
+  // Use time-based movement with speed multiplier
+  const currentSpeed = MOVEMENT_SPEED * deltaTime * speedMultiplier;
 
   // Change direction periodically
   if (Date.now() - state.lastDirectionChange > DIRECTION_CHANGE_INTERVAL) {
@@ -110,7 +130,23 @@ function applyMoveToMovement(entity, deltaTime) {
   const directionX = dx / distance; // Normalize
   const directionY = dy / distance;
 
-  const currentSpeed = MOVEMENT_SPEED * deltaTime;
+  // Apply speed multipliers based on needs
+  let speedMultiplier = 1.0;
+
+  // Apply tiredness penalty and running if entity has needs system
+  if (entity.tiredness !== undefined) {
+    speedMultiplier *= needs.getSpeedMultiplier(entity);
+
+    // Try to run if possible (when moving to specific target)
+    if (needs.canRun(entity)) {
+      speedMultiplier *= config.RUN_SPEED_MULTIPLIER;
+      entity.isRunning = true;
+    } else {
+      entity.isRunning = false;
+    }
+  }
+
+  const currentSpeed = MOVEMENT_SPEED * deltaTime * speedMultiplier;
 
   const newX = entity.x + directionX * currentSpeed;
   const newY = entity.y + directionY * currentSpeed;

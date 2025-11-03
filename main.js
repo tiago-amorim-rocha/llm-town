@@ -9,6 +9,7 @@ import { updateVisibility } from './visibility.js';
 import { updateEntityPosition, initMovementState, clearMovementState } from './movement.js';
 import { render } from './rendering.js';
 import { initTestUI } from './testUI.js';
+import { updateNeeds } from './needs.js';
 
 // ============================================================
 // AUTO-RELOAD SYSTEM
@@ -279,14 +280,102 @@ function initScene() {
 }
 
 // ============================================================
+// NEEDS UI UPDATE
+// ============================================================
+
+function updateNeedsUI(entity) {
+  if (!entity || entity.hunger === undefined) return;
+
+  // Update HP bar
+  const hpBar = document.getElementById('hp-bar');
+  const hpValue = document.getElementById('hp-value');
+  if (hpBar && hpValue) {
+    hpBar.style.width = `${entity.hp}%`;
+    hpValue.textContent = Math.round(entity.hp);
+  }
+
+  // Update Hunger bar
+  const hungerBar = document.getElementById('hunger-bar');
+  const hungerValue = document.getElementById('hunger-value');
+  if (hungerBar && hungerValue) {
+    hungerBar.style.width = `${entity.hunger}%`;
+    hungerValue.textContent = Math.round(entity.hunger);
+  }
+
+  // Update Tiredness bar
+  const tirednessBar = document.getElementById('tiredness-bar');
+  const tirednessValue = document.getElementById('tiredness-value');
+  if (tirednessBar && tirednessValue) {
+    tirednessBar.style.width = `${entity.tiredness}%`;
+    tirednessValue.textContent = Math.round(entity.tiredness);
+  }
+
+  // Update Cold bar
+  const coldBar = document.getElementById('cold-bar');
+  const coldValue = document.getElementById('cold-value');
+  if (coldBar && coldValue) {
+    coldBar.style.width = `${entity.cold}%`;
+    coldValue.textContent = Math.round(entity.cold);
+  }
+}
+
+function showGameOver() {
+  const gameOverScreen = document.getElementById('game-over-screen');
+  if (gameOverScreen) {
+    gameOverScreen.classList.add('show');
+  }
+}
+
+function hideGameOver() {
+  const gameOverScreen = document.getElementById('game-over-screen');
+  if (gameOverScreen) {
+    gameOverScreen.classList.remove('show');
+  }
+}
+
+function initRespawnButton() {
+  const respawnButton = document.getElementById('respawn-button');
+  if (respawnButton) {
+    respawnButton.addEventListener('click', () => {
+      console.log('🔄 Respawning...');
+      hideGameOver();
+      initScene(); // Reinitialize scene
+      lastTimestamp = 0; // Reset timestamp
+    });
+  }
+}
+
+// ============================================================
 // GAME LOOP
 // ============================================================
 
+let lastTimestamp = 0;
+
 function gameLoop(timestamp) {
+  // Calculate delta time (milliseconds since last frame)
+  const deltaTime = lastTimestamp === 0 ? 16.67 : timestamp - lastTimestamp;
+  lastTimestamp = timestamp;
+
   const { isCollecting } = getCollectionState();
 
-  updateEntityPosition(characterEntity, isCollecting);
-  updateEntityPosition(wolfEntity, false);
+  // Update movement
+  updateEntityPosition(characterEntity, isCollecting, deltaTime / 1000);
+  updateEntityPosition(wolfEntity, false, deltaTime / 1000);
+
+  // Update needs for all smart entities
+  const bonfireEntity = entities.find(e => e.type === 'bonfire');
+  if (characterEntity && characterEntity.hunger !== undefined) {
+    updateNeeds(characterEntity, deltaTime, bonfireEntity);
+    updateNeedsUI(characterEntity);
+
+    // Check for death
+    if (characterEntity.isDead) {
+      showGameOver();
+    }
+  }
+  if (wolfEntity && wolfEntity.hunger !== undefined) {
+    updateNeeds(wolfEntity, deltaTime, bonfireEntity);
+  }
 
   // Re-sort entities by Y position
   entities.sort((a, b) => a.y - b.y);
@@ -314,6 +403,7 @@ async function init() {
   console.log('✨ Initializing survival scene...');
 
   initReloadButton();
+  initRespawnButton();
   showReloadButton(); // TEMPORARILY ALWAYS SHOW FOR TESTING
   setInterval(checkForNewVersion, VERSION_CHECK_INTERVAL);
   console.log(`🔍 Version checking enabled (every ${VERSION_CHECK_INTERVAL / 1000}s)`);
