@@ -333,6 +333,49 @@ const AVAILABLE_ACTIONS = [
   { id: 'wander', label: '🚶 Wander', needsTarget: false }
 ];
 
+function hasValidTargets(actionId) {
+  if (!characterEntity) return false;
+
+  switch (actionId) {
+    case 'searchFor':
+      return true; // Always available (can search for apple, berry, bonfire)
+
+    case 'moveTo':
+      // Check if there are visible entities
+      const visibleTargets = Array.from(characterEntity.visibleEntities || entities);
+      return visibleTargets.filter(e => e !== characterEntity).length > 0;
+
+    case 'collect':
+      // Check if there are entities with items
+      const collectTargets = Array.from(characterEntity.visibleEntities || entities);
+      return collectTargets.some(e =>
+        e !== characterEntity && e.inventory && e.inventory.items.length > 0
+      );
+
+    case 'drop':
+      // Check if character has items
+      return characterEntity.inventory && characterEntity.inventory.items.length > 0;
+
+    case 'eat':
+      // Check if character has food items
+      if (!characterEntity.inventory || characterEntity.inventory.items.length === 0) {
+        return false;
+      }
+      return characterEntity.inventory.items.some(item =>
+        item.type === 'apple' || item.type === 'berry'
+      );
+
+    case 'sleep':
+      return true; // Always available
+
+    case 'wander':
+      return true; // Always available
+
+    default:
+      return false;
+  }
+}
+
 function showActionMenu() {
   currentActionMenuState = 'actions';
   selectedAction = null;
@@ -346,13 +389,25 @@ function showActionMenu() {
   title.textContent = 'Select Action';
   list.innerHTML = '';
 
-  AVAILABLE_ACTIONS.forEach(action => {
+  // Filter actions to only show ones with valid targets
+  const validActions = AVAILABLE_ACTIONS.filter(action => hasValidTargets(action.id));
+
+  if (validActions.length === 0) {
     const item = document.createElement('div');
     item.className = 'action-item';
-    item.textContent = action.label;
-    item.onclick = () => handleActionSelect(action);
+    item.textContent = '❌ No actions available';
+    item.style.cursor = 'default';
+    item.style.opacity = '0.5';
     list.appendChild(item);
-  });
+  } else {
+    validActions.forEach(action => {
+      const item = document.createElement('div');
+      item.className = 'action-item';
+      item.textContent = action.label;
+      item.onclick = () => handleActionSelect(action);
+      list.appendChild(item);
+    });
+  }
 
   menu.classList.add('show');
 }
