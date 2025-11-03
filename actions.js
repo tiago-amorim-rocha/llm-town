@@ -134,12 +134,17 @@ function executeDrop(smartEntity, itemType, callback, entities) {
 function executeSearchFor(smartEntity, itemType, callback) {
   console.log(`🔍 ${smartEntity.type} searching for ${itemType}...`);
 
-  // Determine which entity type has this item
+  // Determine which entity type has this item (or is the target itself)
   let targetType = null;
+  let isDirectEntitySearch = false;  // True if searching for entity itself, not an item
+
   if (itemType === 'apple') {
     targetType = 'tree';
   } else if (itemType === 'berry') {
     targetType = 'grass';
+  } else if (itemType === 'bonfire') {
+    targetType = 'bonfire';
+    isDirectEntitySearch = true;
   }
 
   if (!targetType) {
@@ -154,9 +159,15 @@ function executeSearchFor(smartEntity, itemType, callback) {
 
   // Helper to check if entity matches search criteria
   const isTargetMatch = (entity) => {
-    return entity.type === targetType &&
-           entity.inventory &&
-           entity.inventory.hasItem(itemType);
+    if (isDirectEntitySearch) {
+      // For direct entity searches (like bonfire), just match the type
+      return entity.type === targetType;
+    } else {
+      // For item searches, match type AND check inventory
+      return entity.type === targetType &&
+             entity.inventory &&
+             entity.inventory.hasItem(itemType);
+    }
   };
 
   // Check if target is already visible
