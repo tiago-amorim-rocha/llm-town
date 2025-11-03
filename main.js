@@ -272,8 +272,7 @@ function initScene() {
   entities.sort((a, b) => a.y - b.y);
 
   // Initialize visibility
-  // TEMPORARILY DISABLED FOR TESTING
-  // updateVisibility(entities);
+  updateVisibility(entities);
 
   render(canvas, entities, SVG_COMPONENTS, getCharacterSVG, characterEntity);
 }
@@ -671,8 +670,9 @@ function gameLoop(timestamp) {
   // Re-sort entities by Y position
   entities.sort((a, b) => a.y - b.y);
 
-  // TEMPORARILY DISABLED FOR TESTING
-  // updateVisibility(entities);
+  // Update visibility for smart entities
+  updateVisibility(entities);
+
   render(canvas, entities, SVG_COMPONENTS, getCharacterSVG, characterEntity);
 
   // Request next frame (runs at monitor refresh rate, typically 60fps)
