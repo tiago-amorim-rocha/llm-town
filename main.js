@@ -280,6 +280,305 @@ function initScene() {
 }
 
 // ============================================================
+// FEEDBACK LOG UI
+// ============================================================
+
+let feedbackMessages = [];
+const MAX_FEEDBACK_MESSAGES = 10;
+
+function addFeedbackMessage(message) {
+  feedbackMessages.push(message);
+  if (feedbackMessages.length > MAX_FEEDBACK_MESSAGES) {
+    feedbackMessages.shift(); // Remove oldest
+  }
+  updateFeedbackLog();
+}
+
+function updateFeedbackLog() {
+  const feedbackLog = document.getElementById('feedback-log');
+  if (!feedbackLog) return;
+
+  feedbackLog.innerHTML = feedbackMessages
+    .map(msg => `<div class="feedback-message">${msg}</div>`)
+    .join('');
+
+  // Auto-scroll to bottom
+  feedbackLog.scrollTop = feedbackLog.scrollHeight;
+}
+
+// Intercept console.log to capture feedback
+const originalConsoleLog = console.log;
+console.log = function(...args) {
+  originalConsoleLog.apply(console, args);
+
+  // Only capture certain emoji-prefixed messages
+  const message = args.join(' ');
+  if (message.match(/^[🎯🔍✅⏰😴🍽️💀📦🚶]/)) {
+    addFeedbackMessage(message);
+  }
+};
+
+// ============================================================
+// ACTION MENU UI
+// ============================================================
+
+let currentActionMenuState = null; // 'actions', 'targets', or null
+let selectedAction = null;
+
+const AVAILABLE_ACTIONS = [
+  { id: 'searchFor', label: '🔍 Search for...', needsTarget: true },
+  { id: 'moveTo', label: '🎯 Move to...', needsTarget: true },
+  { id: 'collect', label: '📦 Collect from...', needsTarget: true },
+  { id: 'drop', label: '📤 Drop item...', needsTarget: true },
+  { id: 'eat', label: '🍽️ Eat item...', needsTarget: true },
+  { id: 'sleep', label: '😴 Sleep', needsTarget: false },
+  { id: 'wander', label: '🚶 Wander', needsTarget: false }
+];
+
+function showActionMenu() {
+  currentActionMenuState = 'actions';
+  selectedAction = null;
+
+  const menu = document.getElementById('action-menu');
+  const title = document.getElementById('action-menu-title');
+  const list = document.getElementById('action-menu-list');
+
+  if (!menu || !title || !list) return;
+
+  title.textContent = 'Select Action';
+  list.innerHTML = '';
+
+  AVAILABLE_ACTIONS.forEach(action => {
+    const item = document.createElement('div');
+    item.className = 'action-item';
+    item.textContent = action.label;
+    item.onclick = () => handleActionSelect(action);
+    list.appendChild(item);
+  });
+
+  menu.classList.add('show');
+}
+
+function handleActionSelect(action) {
+  if (!action.needsTarget) {
+    // Execute immediately
+    executeAction(action.id, null);
+    hideActionMenu();
+  } else {
+    // Show target selection
+    selectedAction = action;
+    showTargetSelection(action);
+  }
+}
+
+function showTargetSelection(action) {
+  currentActionMenuState = 'targets';
+
+  const title = document.getElementById('action-menu-title');
+  const list = document.getElementById('action-menu-list');
+
+  if (!title || !list) return;
+
+  title.textContent = `${action.label} - Select Target`;
+  list.innerHTML = '';
+
+  // Get appropriate targets based on action
+  const targets = getTargetsForAction(action.id);
+
+  if (targets.length === 0) {
+    const item = document.createElement('div');
+    item.className = 'action-item';
+    item.textContent = '❌ No targets available';
+    item.style.cursor = 'default';
+    item.style.opacity = '0.5';
+    list.appendChild(item);
+    return;
+  }
+
+  targets.forEach(target => {
+    const item = document.createElement('div');
+    item.className = 'action-item';
+    item.textContent = target.label;
+    item.onclick = () => {
+      executeAction(action.id, target.value);
+      hideActionMenu();
+    };
+    list.appendChild(item);
+  });
+}
+
+function getTargetsForAction(actionId) {
+  if (!characterEntity) return [];
+
+  switch (actionId) {
+    case 'searchFor':
+      return [
+        { label: '🍎 Apple', value: 'apple' },
+        { label: '🫐 Berry', value: 'berry' },
+        { label: '🔥 Bonfire', value: 'bonfire' }
+      ];
+
+    case 'moveTo':
+      // Get all visible entities
+      const visibleTargets = Array.from(characterEntity.visibleEntities || entities);
+      return visibleTargets
+        .filter(e => e !== characterEntity)
+        .map(e => ({
+          label: `${getEntityEmoji(e.type)} ${e.type} (${Math.round(e.x)}, ${Math.round(e.y)})`,
+          value: e
+        }));
+
+    case 'collect':
+      // Get entities with items in their inventory
+      const collectTargets = Array.from(characterEntity.visibleEntities || entities);
+      return collectTargets
+        .filter(e => e !== characterEntity && e.inventory && e.inventory.items.length > 0)
+        .flatMap(e => {
+          return e.inventory.items.map((item, idx) => ({
+            label: `${getEntityEmoji(item.type)} ${item.type} from ${e.type}`,
+            value: { entity: e, itemType: item.type }
+          }));
+        });
+
+    case 'drop':
+      // Get items in character's inventory
+      if (!characterEntity.inventory || characterEntity.inventory.items.length === 0) {
+        return [];
+      }
+      return characterEntity.inventory.items.map(item => ({
+        label: `${getEntityEmoji(item.type)} ${item.type}`,
+        value: item.type
+      }));
+
+    case 'eat':
+      // Get food items in inventory
+      if (!characterEntity.inventory || characterEntity.inventory.items.length === 0) {
+        return [];
+      }
+      const foodItems = characterEntity.inventory.items.filter(item =>
+        item.type === 'apple' || item.type === 'berry'
+      );
+      return foodItems.map(item => ({
+        label: `${getEntityEmoji(item.type)} ${item.type}`,
+        value: item.type
+      }));
+
+    default:
+      return [];
+  }
+}
+
+function getEntityEmoji(type) {
+  const emojiMap = {
+    apple: '🍎',
+    berry: '🫐',
+    tree: '🌳',
+    grass: '🌿',
+    bonfire: '🔥',
+    character: '🧍',
+    wolf: '🐺'
+  };
+  return emojiMap[type] || '❓';
+}
+
+function executeAction(actionId, target) {
+  if (!characterEntity) return;
+
+  switch (actionId) {
+    case 'searchFor':
+      characterEntity.searchFor(target, (result) => {
+        if (result.success) {
+          console.log(`✅ Found ${target}!`);
+        } else {
+          console.log(`⏰ Could not find ${target}`);
+        }
+      });
+      break;
+
+    case 'moveTo':
+      characterEntity.moveTo(target, (result) => {
+        if (result.success) {
+          console.log(`✅ Arrived at ${target.type}`);
+        }
+      });
+      break;
+
+    case 'collect':
+      characterEntity.collect(target.entity, target.itemType, (result) => {
+        if (result.success) {
+          console.log(`✅ Collected ${target.itemType}!`);
+        } else {
+          console.log(`⏰ Could not collect ${target.itemType}: ${result.reason}`);
+        }
+      });
+      break;
+
+    case 'drop':
+      characterEntity.drop(target, (result) => {
+        if (result.success) {
+          console.log(`📦 Dropped ${target}`);
+        }
+      });
+      break;
+
+    case 'eat':
+      characterEntity.eat(target, (result) => {
+        if (result.success) {
+          console.log(`🍽️ Ate ${target}!`);
+        } else {
+          console.log(`⏰ Cannot eat: ${result.reason}`);
+        }
+      });
+      break;
+
+    case 'sleep':
+      characterEntity.sleep((result) => {
+        if (result.success) {
+          console.log(`✅ Woke up refreshed!`);
+        } else {
+          console.log(`⏰ Sleep interrupted: ${result.reason}`);
+        }
+      });
+      break;
+
+    case 'wander':
+      characterEntity.wander((result) => {
+        if (result.success) {
+          console.log(`✅ Finished wandering`);
+        }
+      });
+      break;
+  }
+}
+
+function hideActionMenu() {
+  const menu = document.getElementById('action-menu');
+  if (menu) {
+    menu.classList.remove('show');
+  }
+  currentActionMenuState = null;
+  selectedAction = null;
+}
+
+function initActionMenu() {
+  const closeButton = document.getElementById('action-menu-close');
+  if (closeButton) {
+    closeButton.addEventListener('click', hideActionMenu);
+  }
+
+  // Show menu when pressing 'A' key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'a' || e.key === 'A') {
+      if (currentActionMenuState === null) {
+        showActionMenu();
+      } else {
+        hideActionMenu();
+      }
+    }
+  });
+}
+
+// ============================================================
 // NEEDS UI UPDATE
 // ============================================================
 
@@ -288,34 +587,26 @@ function updateNeedsUI(entity) {
 
   // Update HP bar
   const hpBar = document.getElementById('hp-bar');
-  const hpValue = document.getElementById('hp-value');
-  if (hpBar && hpValue) {
+  if (hpBar) {
     hpBar.style.width = `${entity.hp}%`;
-    hpValue.textContent = Math.round(entity.hp);
   }
 
   // Update Food bar
   const foodBar = document.getElementById('food-bar');
-  const foodValue = document.getElementById('food-value');
-  if (foodBar && foodValue) {
+  if (foodBar) {
     foodBar.style.width = `${entity.food}%`;
-    foodValue.textContent = Math.round(entity.food);
   }
 
   // Update Energy bar
   const energyBar = document.getElementById('energy-bar');
-  const energyValue = document.getElementById('energy-value');
-  if (energyBar && energyValue) {
+  if (energyBar) {
     energyBar.style.width = `${entity.energy}%`;
-    energyValue.textContent = Math.round(entity.energy);
   }
 
   // Update Warmth bar
   const warmthBar = document.getElementById('warmth-bar');
-  const warmthValue = document.getElementById('warmth-value');
-  if (warmthBar && warmthValue) {
+  if (warmthBar) {
     warmthBar.style.width = `${entity.warmth}%`;
-    warmthValue.textContent = Math.round(entity.warmth);
   }
 }
 
@@ -404,6 +695,7 @@ async function init() {
 
   initReloadButton();
   initRespawnButton();
+  initActionMenu();
   showReloadButton(); // TEMPORARILY ALWAYS SHOW FOR TESTING
   setInterval(checkForNewVersion, VERSION_CHECK_INTERVAL);
   console.log(`🔍 Version checking enabled (every ${VERSION_CHECK_INTERVAL / 1000}s)`);
