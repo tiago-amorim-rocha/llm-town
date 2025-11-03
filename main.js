@@ -66,7 +66,8 @@ const SVG_ASSETS = {
   character: './assets/character.svg',
   wolf: './assets/wolf.svg',
   apple: './assets/apple.svg',
-  berry: './assets/berry.svg'
+  berry: './assets/berry.svg',
+  stick: './assets/stick.svg'
 };
 
 async function loadSVG(name, path) {
@@ -163,10 +164,13 @@ function initScene() {
   const characterHeight = height / 20;
   const characterScale = characterHeight / 50;
 
-  // Place bonfire
+  // Place bonfire (with fuel system)
   const bonfireX = width * 0.5;
   const bonfireY = height * 0.65;
-  entities.push(new Entity('bonfire', bonfireX, bonfireY, 0.9));
+  const bonfireEntity = new Entity('bonfire', bonfireX, bonfireY, 0.9);
+  bonfireEntity.fuel = 100; // Start with full fuel (0-100)
+  bonfireEntity.maxFuel = 100;
+  entities.push(bonfireEntity);
 
   // Place character (friendly)
   const characterX = bonfireX + 37.5;
@@ -268,6 +272,21 @@ function initScene() {
     entities.push(grass);
   }
 
+  // Generate sticks (fuel for bonfire)
+  const stickCount = 8 + Math.floor(Math.random() * 5); // 8-12 sticks
+  for (let i = 0; i < stickCount; i++) {
+    const scale = 0.6 + Math.random() * 0.4;
+    const stickRadius = 15 * scale;
+
+    // Random placement
+    const x = stickRadius + Math.random() * (width - 2 * stickRadius);
+    const y = stickRadius + Math.random() * (height - 2 * stickRadius);
+
+    const stick = new DummyEntity('stick', x, y, scale, 1);
+    stick.inventory.addItem(new Item('stick'));
+    entities.push(stick);
+  }
+
   // Sort entities by Y position for depth ordering
   entities.sort((a, b) => a.y - b.y);
 
@@ -311,7 +330,7 @@ console.log = function(...args) {
 
   // Only capture certain emoji-prefixed messages
   const message = args.join(' ');
-  if (message.match(/^[🎯🔍✅⏰😴🍽️💀📦🚶]/)) {
+  if (message.match(/^[🎯🔍✅⏰😴🍽️💀📦🚶🔥]/)) {
     addFeedbackMessage(message);
   }
 };
@@ -329,6 +348,7 @@ const AVAILABLE_ACTIONS = [
   { id: 'collect', label: '📦 Collect from...', needsTarget: true },
   { id: 'drop', label: '📤 Drop item...', needsTarget: true },
   { id: 'eat', label: '🍽️ Eat item...', needsTarget: true },
+  { id: 'addFuel', label: '🔥 Add fuel to bonfire', needsTarget: false },
   { id: 'sleep', label: '😴 Sleep', needsTarget: false },
   { id: 'wander', label: '🚶 Wander', needsTarget: false }
 ];
@@ -364,6 +384,20 @@ function hasValidTargets(actionId) {
       return characterEntity.inventory.items.some(item =>
         item.type === 'apple' || item.type === 'berry'
       );
+
+    case 'addFuel':
+      // Check if character has sticks AND is near bonfire
+      if (!characterEntity.inventory || !characterEntity.inventory.hasItem('stick')) {
+        return false;
+      }
+      // Check if bonfire is visible/nearby
+      const bonfire = entities.find(e => e.type === 'bonfire');
+      if (!bonfire) return false;
+      const distToBonfire = Math.sqrt(
+        (characterEntity.x - bonfire.x) ** 2 +
+        (characterEntity.y - bonfire.y) ** 2
+      );
+      return distToBonfire <= config.COLLECTION_RANGE;
 
     case 'sleep':
       return true; // Always available
@@ -529,7 +563,8 @@ function getEntityEmoji(type) {
     grass: '🌿',
     bonfire: '🔥',
     character: '🧍',
-    wolf: '🐺'
+    wolf: '🐺',
+    stick: '🪵'
   };
   return emojiMap[type] || '❓';
 }
@@ -582,6 +617,19 @@ function executeAction(actionId, target) {
           console.log(`⏰ Cannot eat: ${result.reason}`);
         }
       });
+      break;
+
+    case 'addFuel':
+      const bonfireEntity = entities.find(e => e.type === 'bonfire');
+      if (bonfireEntity) {
+        characterEntity.addFuel(bonfireEntity, (result) => {
+          if (result.success) {
+            console.log(`🔥 Added fuel to bonfire!`);
+          } else {
+            console.log(`⏰ Cannot add fuel: ${result.reason}`);
+          }
+        });
+      }
       break;
 
     case 'sleep':
@@ -720,6 +768,13 @@ function gameLoop(timestamp) {
   }
   if (wolfEntity && wolfEntity.food !== undefined) {
     updateNeeds(wolfEntity, deltaTime, bonfireEntity);
+  }
+
+  // Update bonfire fuel
+  if (bonfireEntity && bonfireEntity.fuel !== undefined) {
+    // Bonfire burns fuel at 0.05 per second (depletes in ~33 minutes)
+    const fuelBurnRate = 0.05;
+    bonfireEntity.fuel = Math.max(0, bonfireEntity.fuel - fuelBurnRate * (deltaTime / 1000));
   }
 
   // Re-sort entities by Y position

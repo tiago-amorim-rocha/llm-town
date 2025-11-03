@@ -319,6 +319,50 @@ function executeEat(smartEntity, foodType, callback) {
   }
 }
 
+function executeAddFuel(smartEntity, bonfireEntity, callback) {
+  if (smartEntity.isDead) {
+    callback({ success: false, reason: 'entity_dead' });
+    return;
+  }
+
+  // Check if entity has sticks
+  if (!smartEntity.inventory.hasItem('stick')) {
+    callback({ success: false, reason: 'no_sticks' });
+    return;
+  }
+
+  // Check if close enough to bonfire
+  const dist = distance(smartEntity.x, smartEntity.y, bonfireEntity.x, bonfireEntity.y);
+  if (dist > COLLECTION_RANGE) {
+    callback({ success: false, reason: 'too_far', distance: dist });
+    return;
+  }
+
+  // Check if bonfire has fuel property
+  if (bonfireEntity.fuel === undefined) {
+    callback({ success: false, reason: 'invalid_bonfire' });
+    return;
+  }
+
+  // Find stick in inventory
+  const stickIndex = smartEntity.inventory.items.findIndex(item => item.type === 'stick');
+  if (stickIndex === -1) {
+    callback({ success: false, reason: 'no_sticks' });
+    return;
+  }
+
+  // Remove stick from inventory
+  smartEntity.inventory.removeItem(stickIndex);
+
+  // Add fuel to bonfire (each stick adds 20 fuel)
+  const fuelAdded = 20;
+  bonfireEntity.fuel = Math.min(bonfireEntity.maxFuel, bonfireEntity.fuel + fuelAdded);
+
+  console.log(`🔥 ${smartEntity.type} added fuel to bonfire! Fuel: ${bonfireEntity.fuel.toFixed(0)}/${bonfireEntity.maxFuel}`);
+
+  callback({ success: true });
+}
+
 // Inject action methods into SmartEntity prototype
 export function injectActions(SmartEntityClass, entitiesGetter) {
   SmartEntityClass.prototype.collect = function(target, itemType, callback) {
@@ -363,5 +407,9 @@ export function injectActions(SmartEntityClass, entitiesGetter) {
 
   SmartEntityClass.prototype.eat = function(foodType, callback) {
     executeEat(this, foodType, callback);
+  };
+
+  SmartEntityClass.prototype.addFuel = function(bonfireEntity, callback) {
+    executeAddFuel(this, bonfireEntity, callback);
   };
 }

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-15 -15 30 30">
+  <!-- Simple stick lying on ground -->
+  <!-- Dark brown stick -->
+  <rect x="-12" y="-2" width="24" height="4" rx="2" fill="#5d4037"/>
+  <!-- Lighter highlight -->
+  <rect x="-12" y="-2" width="24" height="1.5" rx="1" fill="#795548" opacity="0.6"/>
+  <!-- Small branch nub -->
+  <rect x="-4" y="-1" width="3" height="6" rx="1" fill="#5d4037"/>
+</svg>
