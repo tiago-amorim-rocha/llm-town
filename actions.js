@@ -289,10 +289,10 @@ function executeSleep(smartEntity, callback) {
       return;
     }
 
-    // Wake up if tiredness is low enough
-    if (smartEntity.tiredness <= needs.SLEEP_TARGET_TIREDNESS) {
+    // Wake up if energy is high enough (low is bad, so we sleep until energy is high)
+    if (smartEntity.energy >= needs.SLEEP_TARGET_ENERGY) {
       smartEntity.isSleeping = false;
-      console.log(`✅ ${smartEntity.type} woke up refreshed! Tiredness: ${smartEntity.tiredness.toFixed(1)}`);
+      console.log(`✅ ${smartEntity.type} woke up refreshed! Energy: ${smartEntity.energy.toFixed(1)}`);
       callback({ success: true });
       return;
     }

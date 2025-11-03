@@ -63,8 +63,8 @@ function applyWanderingMovement(entity, deltaTime) {
   // Apply speed multipliers based on needs
   let speedMultiplier = 1.0;
 
-  // Apply tiredness penalty if entity has needs system
-  if (entity.tiredness !== undefined) {
+  // Apply energy penalty if entity has needs system
+  if (entity.energy !== undefined) {
     speedMultiplier *= needs.getSpeedMultiplier(entity);
     entity.isRunning = false; // Not running during wander
   }
@@ -133,8 +133,8 @@ function applyMoveToMovement(entity, deltaTime) {
   // Apply speed multipliers based on needs
   let speedMultiplier = 1.0;
 
-  // Apply tiredness penalty and running if entity has needs system
-  if (entity.tiredness !== undefined) {
+  // Apply energy penalty and running if entity has needs system
+  if (entity.energy !== undefined) {
     speedMultiplier *= needs.getSpeedMultiplier(entity);
 
     // Try to run if possible (when moving to specific target)

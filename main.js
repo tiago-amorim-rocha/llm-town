@@ -284,7 +284,7 @@ function initScene() {
 // ============================================================
 
 function updateNeedsUI(entity) {
-  if (!entity || entity.hunger === undefined) return;
+  if (!entity || entity.food === undefined) return;
 
   // Update HP bar
   const hpBar = document.getElementById('hp-bar');
@@ -294,28 +294,28 @@ function updateNeedsUI(entity) {
     hpValue.textContent = Math.round(entity.hp);
   }
 
-  // Update Hunger bar
-  const hungerBar = document.getElementById('hunger-bar');
-  const hungerValue = document.getElementById('hunger-value');
-  if (hungerBar && hungerValue) {
-    hungerBar.style.width = `${entity.hunger}%`;
-    hungerValue.textContent = Math.round(entity.hunger);
+  // Update Food bar
+  const foodBar = document.getElementById('food-bar');
+  const foodValue = document.getElementById('food-value');
+  if (foodBar && foodValue) {
+    foodBar.style.width = `${entity.food}%`;
+    foodValue.textContent = Math.round(entity.food);
   }
 
-  // Update Tiredness bar
-  const tirednessBar = document.getElementById('tiredness-bar');
-  const tirednessValue = document.getElementById('tiredness-value');
-  if (tirednessBar && tirednessValue) {
-    tirednessBar.style.width = `${entity.tiredness}%`;
-    tirednessValue.textContent = Math.round(entity.tiredness);
+  // Update Energy bar
+  const energyBar = document.getElementById('energy-bar');
+  const energyValue = document.getElementById('energy-value');
+  if (energyBar && energyValue) {
+    energyBar.style.width = `${entity.energy}%`;
+    energyValue.textContent = Math.round(entity.energy);
   }
 
-  // Update Cold bar
-  const coldBar = document.getElementById('cold-bar');
-  const coldValue = document.getElementById('cold-value');
-  if (coldBar && coldValue) {
-    coldBar.style.width = `${entity.cold}%`;
-    coldValue.textContent = Math.round(entity.cold);
+  // Update Warmth bar
+  const warmthBar = document.getElementById('warmth-bar');
+  const warmthValue = document.getElementById('warmth-value');
+  if (warmthBar && warmthValue) {
+    warmthBar.style.width = `${entity.warmth}%`;
+    warmthValue.textContent = Math.round(entity.warmth);
   }
 }
 
@@ -364,7 +364,7 @@ function gameLoop(timestamp) {
 
   // Update needs for all smart entities
   const bonfireEntity = entities.find(e => e.type === 'bonfire');
-  if (characterEntity && characterEntity.hunger !== undefined) {
+  if (characterEntity && characterEntity.food !== undefined) {
     updateNeeds(characterEntity, deltaTime, bonfireEntity);
     updateNeedsUI(characterEntity);
 
@@ -373,7 +373,7 @@ function gameLoop(timestamp) {
       showGameOver();
     }
   }
-  if (wolfEntity && wolfEntity.hunger !== undefined) {
+  if (wolfEntity && wolfEntity.food !== undefined) {
     updateNeeds(wolfEntity, deltaTime, bonfireEntity);
   }
 
