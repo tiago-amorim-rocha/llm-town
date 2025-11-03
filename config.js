@@ -41,13 +41,13 @@ export const BACKGROUND_COLOR = "#2a5d2a";  // Lighter green for better visibili
 // CHARACTER MOVEMENT SETTINGS
 // ============================================================
 
-export const MOVEMENT_SPEED = 90;               // Pixels per second (base speed)
-export const RUN_SPEED_MULTIPLIER = 2.0;        // Running doubles movement speed
-export const DIRECTION_CHANGE_INTERVAL = 4000;  // Change direction every 4 seconds (search mode)
+export const MOVEMENT_SPEED = 45;               // Pixels per second (base speed) - halved from 90
+export const RUN_SPEED_MULTIPLIER = 1.0;        // Running speed multiplier - halved from 2.0
+export const DIRECTION_CHANGE_INTERVAL = 8000;  // Change direction every 8 seconds (search mode) - doubled from 4000
 export const MOVEMENT_UPDATE_INTERVAL = 1000 / 60; // 60 fps visual updates (~16.67ms)
 export const MOVE_TO_ARRIVAL_DISTANCE = 20;     // Consider arrived when within this distance
 export const MOVE_TO_MAX_CYCLES = 3;            // Number of move-to cycles before search mode
-export const SEARCH_MODE_DURATION = 10000;      // Search mode duration in milliseconds (10 seconds)
+export const SEARCH_MODE_DURATION = 20000;      // Search mode duration in milliseconds (20 seconds) - doubled from 10000
 
 // ============================================================
 // TREE GENERATION SETTINGS
@@ -72,8 +72,8 @@ export const GRASS_RADIUS = 25;             // Approximate grass radius at scale
 // ============================================================
 
 export const COLLECTION_RANGE = 50;          // Maximum distance to collect items (pixels)
-export const APPLE_COLLECTION_TIME = 3000;   // Time to collect apple in milliseconds (3 seconds)
-export const BERRY_COLLECTION_TIME = 2500;   // Time to collect berries in milliseconds (2.5 seconds)
+export const APPLE_COLLECTION_TIME = 6000;   // Time to collect apple in milliseconds (6 seconds) - doubled from 3000
+export const BERRY_COLLECTION_TIME = 5000;   // Time to collect berries in milliseconds (5 seconds) - doubled from 2500
 export const MAX_INVENTORY_SIZE = 2;         // Maximum items character can carry
 
 // ============================================================
