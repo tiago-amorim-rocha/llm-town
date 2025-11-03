@@ -332,14 +332,14 @@
     .need-bar-fill.hp {
       background: linear-gradient(90deg, #e74c3c, #c0392b);
     }
-    .need-bar-fill.hunger {
+    .need-bar-fill.food {
       background: linear-gradient(90deg, #f39c12, #e67e22);
     }
-    .need-bar-fill.tiredness {
-      background: linear-gradient(90deg, #9b59b6, #8e44ad);
+    .need-bar-fill.energy {
+      background: linear-gradient(90deg, #f1c40f, #f39c12);
     }
-    .need-bar-fill.cold {
-      background: linear-gradient(90deg, #3498db, #2980b9);
+    .need-bar-fill.warmth {
+      background: linear-gradient(90deg, #e74c3c, #c0392b);
     }
   </style>
 </head>
@@ -352,7 +352,7 @@
     <button id="respawn-button">Respawn</button>
   </div>
 
-  <!-- Needs Display -->
+  <!-- Needs Display (LOW IS ALWAYS BAD) -->
   <div id="needs-display">
     <div class="need-bar-container">
       <div class="need-label">
@@ -365,29 +365,29 @@
     </div>
     <div class="need-bar-container">
       <div class="need-label">
-        <span>🍖 Hunger</span>
-        <span id="hunger-value">100</span>
+        <span>🍖 Food</span>
+        <span id="food-value">100</span>
       </div>
       <div class="need-bar-bg">
-        <div class="need-bar-fill hunger" id="hunger-bar" style="width: 100%"></div>
+        <div class="need-bar-fill food" id="food-bar" style="width: 100%"></div>
       </div>
     </div>
     <div class="need-bar-container">
       <div class="need-label">
-        <span>😴 Tiredness</span>
-        <span id="tiredness-value">0</span>
+        <span>⚡ Energy</span>
+        <span id="energy-value">100</span>
       </div>
       <div class="need-bar-bg">
-        <div class="need-bar-fill tiredness" id="tiredness-bar" style="width: 0%"></div>
+        <div class="need-bar-fill energy" id="energy-bar" style="width: 100%"></div>
       </div>
     </div>
     <div class="need-bar-container">
       <div class="need-label">
-        <span>🧊 Cold</span>
-        <span id="cold-value">0</span>
+        <span>🔥 Warmth</span>
+        <span id="warmth-value">100</span>
       </div>
       <div class="need-bar-bg">
-        <div class="need-bar-fill cold" id="cold-bar" style="width: 0%"></div>
+        <div class="need-bar-fill warmth" id="warmth-bar" style="width: 100%"></div>
       </div>
     </div>
   </div>
