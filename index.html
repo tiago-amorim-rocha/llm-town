@@ -449,6 +449,34 @@
       background: #333;
       border-radius: 3px;
     }
+
+    /* Action Menu Button */
+    #action-menu-button {
+      position: fixed;
+      bottom: calc(80px + env(safe-area-inset-bottom));
+      right: calc(20px + env(safe-area-inset-right));
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: #1a1d23;
+      border: 2px solid #333;
+      color: #eee;
+      font-size: 24px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      transition: all 0.2s;
+    }
+    #action-menu-button:hover {
+      background: #252831;
+      border-color: #555;
+      transform: scale(1.05);
+    }
+    #action-menu-button:active {
+      transform: scale(0.95);
+    }
   </style>
 </head>
 
@@ -487,6 +515,9 @@
       </div>
     </div>
   </div>
+
+  <!-- Action Menu Button -->
+  <button id="action-menu-button" title="Open Action Menu">🎮</button>
 
   <!-- Action Menu -->
   <div id="action-menu">

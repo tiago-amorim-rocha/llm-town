@@ -8,7 +8,6 @@ import { injectActions, getCollectionState } from './actions.js';
 import { updateVisibility } from './visibility.js';
 import { updateEntityPosition, initMovementState, clearMovementState } from './movement.js';
 import { render } from './rendering.js';
-import { initTestUI } from './testUI.js';
 import { updateNeeds } from './needs.js';
 
 // ============================================================
@@ -566,16 +565,17 @@ function initActionMenu() {
     closeButton.addEventListener('click', hideActionMenu);
   }
 
-  // Show menu when pressing 'A' key
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'a' || e.key === 'A') {
+  // Action menu button
+  const actionButton = document.getElementById('action-menu-button');
+  if (actionButton) {
+    actionButton.addEventListener('click', () => {
       if (currentActionMenuState === null) {
         showActionMenu();
       } else {
         hideActionMenu();
       }
-    }
-  });
+    });
+  }
 }
 
 // ============================================================
@@ -706,9 +706,6 @@ async function init() {
   document.body.appendChild(canvas);
 
   initScene();
-
-  // Initialize test UI
-  initTestUI(characterEntity, getEntities);
 
   // Start game loop using requestAnimationFrame for smooth 60fps
   requestAnimationFrame(gameLoop);
