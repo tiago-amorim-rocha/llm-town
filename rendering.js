@@ -50,6 +50,18 @@ export function render(canvas, entities, SVG_COMPONENTS, getCharacterSVG, charac
     }
   }
 
+  // Render sleep indicator
+  let sleepIndicator = '';
+  if (characterEntity && characterEntity.isSleeping) {
+    const zzzX = characterEntity.x + 20;
+    const zzzY = characterEntity.y - 40;
+    sleepIndicator = `
+      <text x="${zzzX}" y="${zzzY}" font-size="24" fill="#ffffff" font-family="Arial" opacity="0.8">
+        💤
+      </text>
+    `;
+  }
+
   // Render inventory items floating above character
   let inventoryDisplay = '';
   if (characterEntity && characterEntity.inventory && characterEntity.inventory.items.length > 0) {
@@ -80,6 +92,9 @@ export function render(canvas, entities, SVG_COMPONENTS, getCharacterSVG, charac
 
       <!-- Visibility circles (friendly entities only) -->
       ${visibilityCircles}
+
+      <!-- Sleep indicator -->
+      ${sleepIndicator}
 
       <!-- Inventory display -->
       ${inventoryDisplay}

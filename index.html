@@ -238,10 +238,160 @@
     #reload-button:hover::after {
       opacity: 1;
     }
+
+    /* Game Over UI */
+    #game-over-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      z-index: 2000;
+    }
+    #game-over-screen.show {
+      display: flex;
+    }
+    #game-over-title {
+      font-size: 64px;
+      font-weight: bold;
+      color: #e74c3c;
+      margin-bottom: 20px;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    }
+    #game-over-message {
+      font-size: 18px;
+      color: #ccc;
+      margin-bottom: 30px;
+      text-align: center;
+      max-width: 80%;
+    }
+    #respawn-button {
+      padding: 15px 40px;
+      font-size: 20px;
+      font-weight: bold;
+      background: #27ae60;
+      color: white;
+      border: 3px solid #229954;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    #respawn-button:hover {
+      background: #229954;
+      border-color: #1e8449;
+      transform: scale(1.05);
+    }
+    #respawn-button:active {
+      transform: scale(0.95);
+    }
+
+    /* Needs bars UI */
+    #needs-display {
+      position: fixed;
+      top: calc(20px + env(safe-area-inset-top));
+      left: calc(20px + env(safe-area-inset-left));
+      background: rgba(26, 29, 35, 0.9);
+      border: 2px solid #333;
+      border-radius: 8px;
+      padding: 12px;
+      z-index: 100;
+      min-width: 200px;
+    }
+    .need-bar-container {
+      margin-bottom: 8px;
+    }
+    .need-bar-container:last-child {
+      margin-bottom: 0;
+    }
+    .need-label {
+      font-size: 12px;
+      font-weight: bold;
+      margin-bottom: 4px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .need-bar-bg {
+      width: 100%;
+      height: 16px;
+      background: #1a1d23;
+      border: 1px solid #333;
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+    }
+    .need-bar-fill {
+      height: 100%;
+      transition: width 0.3s, background 0.3s;
+      border-radius: 3px;
+    }
+    .need-bar-fill.hp {
+      background: linear-gradient(90deg, #e74c3c, #c0392b);
+    }
+    .need-bar-fill.hunger {
+      background: linear-gradient(90deg, #f39c12, #e67e22);
+    }
+    .need-bar-fill.tiredness {
+      background: linear-gradient(90deg, #9b59b6, #8e44ad);
+    }
+    .need-bar-fill.cold {
+      background: linear-gradient(90deg, #3498db, #2980b9);
+    }
   </style>
 </head>
 
 <body>
+  <!-- Game Over Screen -->
+  <div id="game-over-screen">
+    <div id="game-over-title">💀 GAME OVER</div>
+    <div id="game-over-message">You have died...</div>
+    <button id="respawn-button">Respawn</button>
+  </div>
+
+  <!-- Needs Display -->
+  <div id="needs-display">
+    <div class="need-bar-container">
+      <div class="need-label">
+        <span>❤️ HP</span>
+        <span id="hp-value">100</span>
+      </div>
+      <div class="need-bar-bg">
+        <div class="need-bar-fill hp" id="hp-bar" style="width: 100%"></div>
+      </div>
+    </div>
+    <div class="need-bar-container">
+      <div class="need-label">
+        <span>🍖 Hunger</span>
+        <span id="hunger-value">100</span>
+      </div>
+      <div class="need-bar-bg">
+        <div class="need-bar-fill hunger" id="hunger-bar" style="width: 100%"></div>
+      </div>
+    </div>
+    <div class="need-bar-container">
+      <div class="need-label">
+        <span>😴 Tiredness</span>
+        <span id="tiredness-value">0</span>
+      </div>
+      <div class="need-bar-bg">
+        <div class="need-bar-fill tiredness" id="tiredness-bar" style="width: 0%"></div>
+      </div>
+    </div>
+    <div class="need-bar-container">
+      <div class="need-label">
+        <span>🧊 Cold</span>
+        <span id="cold-value">0</span>
+      </div>
+      <div class="need-bar-bg">
+        <div class="need-bar-fill cold" id="cold-bar" style="width: 0%"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- Reload button for new version detection -->
   <button id="reload-button" title="New version available! Click to reload">🔄</button>
 

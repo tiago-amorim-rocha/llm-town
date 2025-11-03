@@ -4,6 +4,7 @@
 import * as config from './config.js';
 import { Item, DummyEntity } from './entities.js';
 import { distance } from './utils.js';
+import * as needs from './needs.js';
 
 // Import configuration
 const COLLECTION_RANGE = config.COLLECTION_RANGE;
@@ -265,6 +266,59 @@ function executeWander(smartEntity, duration, callback) {
   checkCompletion();
 }
 
+function executeSleep(smartEntity, callback) {
+  if (smartEntity.isDead) {
+    callback({ success: false, reason: 'entity_dead' });
+    return;
+  }
+
+  console.log(`😴 ${smartEntity.type} going to sleep...`);
+
+  // Set sleeping state
+  smartEntity.isSleeping = true;
+  smartEntity.currentMovementAction = null; // Stop all movement
+  smartEntity.movementActionData = {};
+
+  // Check sleep completion
+  const checkSleepStatus = () => {
+    // Wake up if HP is critically low (interruptible)
+    if (smartEntity.hp < needs.SLEEP_INTERRUPT_HP) {
+      smartEntity.isSleeping = false;
+      console.log(`⚠️ ${smartEntity.type} woke up due to low HP!`);
+      callback({ success: false, reason: 'hp_critical', interrupted: true });
+      return;
+    }
+
+    // Wake up if tiredness is low enough
+    if (smartEntity.tiredness <= needs.SLEEP_TARGET_TIREDNESS) {
+      smartEntity.isSleeping = false;
+      console.log(`✅ ${smartEntity.type} woke up refreshed! Tiredness: ${smartEntity.tiredness.toFixed(1)}`);
+      callback({ success: true });
+      return;
+    }
+
+    // Continue sleeping
+    requestAnimationFrame(checkSleepStatus);
+  };
+
+  checkSleepStatus();
+}
+
+function executeEat(smartEntity, foodType, callback) {
+  if (smartEntity.isDead) {
+    callback({ success: false, reason: 'entity_dead' });
+    return;
+  }
+
+  const result = needs.eat(smartEntity, foodType);
+
+  if (result.success) {
+    callback({ success: true });
+  } else {
+    callback({ success: false, reason: result.reason });
+  }
+}
+
 // Inject action methods into SmartEntity prototype
 export function injectActions(SmartEntityClass, entitiesGetter) {
   SmartEntityClass.prototype.collect = function(target, itemType, callback) {
@@ -301,5 +355,13 @@ export function injectActions(SmartEntityClass, entitiesGetter) {
     // Stop any current movement action
     this.currentMovementAction = null;
     this.movementActionData = {};
+  };
+
+  SmartEntityClass.prototype.sleep = function(callback) {
+    executeSleep(this, callback);
+  };
+
+  SmartEntityClass.prototype.eat = function(foodType, callback) {
+    executeEat(this, foodType, callback);
   };
 }
