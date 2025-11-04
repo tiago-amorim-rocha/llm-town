@@ -297,41 +297,37 @@ function initScene() {
 }
 
 // ============================================================
-// FEEDBACK LOG UI
+// FEEDBACK LOG UI (shows last action result only)
 // ============================================================
 
-let feedbackMessages = [];
-const MAX_FEEDBACK_MESSAGES = 10;
+let lastActionResult = '';
 
-function addFeedbackMessage(message) {
-  feedbackMessages.push(message);
-  if (feedbackMessages.length > MAX_FEEDBACK_MESSAGES) {
-    feedbackMessages.shift(); // Remove oldest
-  }
-  updateFeedbackLog();
+function showActionResult(message) {
+  lastActionResult = message;
+  updateFeedbackTicker();
 }
 
-function updateFeedbackLog() {
+function updateFeedbackTicker() {
   const feedbackLog = document.getElementById('feedback-log');
   if (!feedbackLog) return;
 
-  feedbackLog.innerHTML = feedbackMessages
-    .map(msg => `<div class="feedback-message">${msg}</div>`)
-    .join('');
-
-  // Auto-scroll to bottom
-  feedbackLog.scrollTop = feedbackLog.scrollHeight;
+  if (lastActionResult) {
+    feedbackLog.textContent = lastActionResult;
+    feedbackLog.style.display = 'block';
+  } else {
+    feedbackLog.style.display = 'none';
+  }
 }
 
-// Intercept console.log to capture feedback
+// Intercept console.log to capture action results
 const originalConsoleLog = console.log;
 console.log = function(...args) {
   originalConsoleLog.apply(console, args);
 
-  // Only capture certain emoji-prefixed messages
+  // Only capture certain emoji-prefixed messages (action results)
   const message = args.join(' ');
   if (message.match(/^[🎯🔍✅⏰😴🍽️💀📦🚶🔥]/)) {
-    addFeedbackMessage(message);
+    showActionResult(message);
   }
 };
 

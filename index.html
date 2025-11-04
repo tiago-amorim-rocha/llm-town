@@ -412,7 +412,7 @@
       background: #c0392b;
     }
 
-    /* Feedback Log UI */
+    /* Feedback Ticker UI - Shows last action result */
     #feedback-log {
       position: fixed;
       bottom: calc(20px + env(safe-area-inset-bottom));
@@ -425,29 +425,14 @@
       z-index: 100;
       max-width: 80%;
       min-width: 300px;
-      max-height: 120px;
-      overflow-y: auto;
       font-family: 'Courier New', monospace;
-      font-size: 12px;
+      font-size: 13px;
       color: #eee;
-    }
-    .feedback-message {
-      margin-bottom: 4px;
-      line-height: 1.4;
-      word-wrap: break-word;
-    }
-    .feedback-message:last-child {
-      margin-bottom: 0;
-    }
-    #feedback-log::-webkit-scrollbar {
-      width: 6px;
-    }
-    #feedback-log::-webkit-scrollbar-track {
-      background: #1a1d23;
-    }
-    #feedback-log::-webkit-scrollbar-thumb {
-      background: #333;
-      border-radius: 3px;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: none; /* Hidden until first action result */
     }
 
     /* Action Menu Button */
