@@ -151,6 +151,12 @@ export class SmartEntity extends Entity {
     initNeeds(this);
     this.isSleeping = false; // Sleep state
     this.isRunning = false;  // Running state (for tiredness calculation)
+
+    // Spatial memory system - remember locations of entities
+    this.memory = {
+      discovered: new Map(), // entityType → {type, x, y, lastSeen, distance}
+      landmarks: new Map()   // Special locations (bonfire)
+    };
   }
 
   // Calculate what this entity can see
@@ -183,6 +189,22 @@ export class SmartEntity extends Entity {
     for (const entity of previousVisible) {
       if (!this.visibleEntities.has(entity)) {
         this._emit('entityInvisible', entity);
+
+        // Remember this entity's location
+        const dist = distance(this.x, this.y, entity.x, entity.y);
+        this.memory.discovered.set(entity.type, {
+          type: entity.type,
+          x: entity.x,
+          y: entity.y,
+          lastSeen: Date.now(),
+          distance: dist,
+          entity: entity // Keep reference for static entities
+        });
+
+        // Mark bonfire as special landmark
+        if (entity.type === 'bonfire') {
+          this.memory.landmarks.set('bonfire', entity);
+        }
       }
     }
   }
