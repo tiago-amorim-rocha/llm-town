@@ -2,6 +2,16 @@
 // GAME CONFIGURATION
 // ============================================================
 // All game settings are centralized here for easy adjustment
+//
+// TIME SYSTEM:
+// The game uses in-game time (hours/minutes/seconds) which passes faster
+// than real time. See time.js for conversion functions and TIME_MULTIPLIER.
+//
+// Current TIME_MULTIPLIER = 240 (testing):
+//   1 in-game hour = 15 real seconds
+//   1 full day (24 hours) = 6 real minutes
+
+import * as time from './time.js';
 
 // ============================================================
 // VISIBILITY SETTINGS
@@ -16,15 +26,19 @@ export const NIGHT_VISIBILITY_RADIUS = 60;  // Halved from 120px
 // DAY/NIGHT CYCLE SETTINGS
 // ============================================================
 
-// Duration of each phase in the day/night cycle (in milliseconds)
-export const DAY_DURATION = 20000;    // 20 seconds
-export const DUSK_DURATION = 10000;   // 10 seconds
-export const NIGHT_DURATION = 20000;  // 20 seconds
-export const DAWN_DURATION = 10000;   // 10 seconds
+// Duration of each phase (in in-game hours)
+// Northern location: long nights (12h), short days (8h)
+export const DAY_HOURS = time.DAY_HOURS;       // 8 in-game hours of daylight
+export const DUSK_HOURS = time.DUSK_HOURS;     // 2 in-game hours of dusk
+export const NIGHT_HOURS = time.NIGHT_HOURS;   // 12 in-game hours of night
+export const DAWN_HOURS = time.DAWN_HOURS;     // 2 in-game hours of dawn
 
-// Total cycle duration (60 seconds)
-export const DAY_NIGHT_CYCLE_DURATION =
-  DAY_DURATION + DUSK_DURATION + NIGHT_DURATION + DAWN_DURATION;
+// Convert to real milliseconds for cycle calculations
+export const DAY_DURATION = time.inGameHoursToRealMs(DAY_HOURS);
+export const DUSK_DURATION = time.inGameHoursToRealMs(DUSK_HOURS);
+export const NIGHT_DURATION = time.inGameHoursToRealMs(NIGHT_HOURS);
+export const DAWN_DURATION = time.inGameHoursToRealMs(DAWN_HOURS);
+export const DAY_NIGHT_CYCLE_DURATION = time.inGameHoursToRealMs(24);
 
 // ============================================================
 // LIGHTING SETTINGS
@@ -32,7 +46,7 @@ export const DAY_NIGHT_CYCLE_DURATION =
 
 // Maximum darkness opacity at night (0-1 range)
 // Lower values = brighter overall, more contrast between day/night
-export const MAX_DARKNESS_OPACITY = 0.6;  // Reduced from 0.6 for better visibility
+export const MAX_DARKNESS_OPACITY = 0.6;
 
 // Background colors
 export const BACKGROUND_COLOR = "#2a5d2a";  // Lighter green for better visibility
@@ -41,13 +55,25 @@ export const BACKGROUND_COLOR = "#2a5d2a";  // Lighter green for better visibili
 // CHARACTER MOVEMENT SETTINGS
 // ============================================================
 
-export const MOVEMENT_SPEED = 45;               // Pixels per second (base speed) - halved from 90
-export const RUN_SPEED_MULTIPLIER = 1.0;        // Running speed multiplier - halved from 2.0
-export const DIRECTION_CHANGE_INTERVAL = 8000;  // Change direction every 8 seconds (search mode) - doubled from 4000
+// Movement speed (in pixels per in-game hour)
+// This maintains visual speed across different TIME_MULTIPLIERs
+const MOVEMENT_SPEED_PER_INGAME_HOUR = 675;  // Equivalent to 45 px/s real at TIME_MULTIPLIER=240
+
+// Convert to pixels per real second for use in movement calculations
+export const MOVEMENT_SPEED = MOVEMENT_SPEED_PER_INGAME_HOUR / 3600 * time.TIME_MULTIPLIER;
+
+export const RUN_SPEED_MULTIPLIER = 1.0;        // Running speed multiplier
 export const MOVEMENT_UPDATE_INTERVAL = 1000 / 60; // 60 fps visual updates (~16.67ms)
-export const MOVE_TO_ARRIVAL_DISTANCE = 20;     // Consider arrived when within this distance
+export const MOVE_TO_ARRIVAL_DISTANCE = 20;     // Consider arrived when within this distance (pixels)
 export const MOVE_TO_MAX_CYCLES = 3;            // Number of move-to cycles before search mode
-export const SEARCH_MODE_DURATION = 20000;      // Search mode duration in milliseconds (20 seconds) - doubled from 10000
+
+// Direction change interval (in in-game minutes)
+const DIRECTION_CHANGE_MINUTES = 32;  // Change direction every 32 in-game minutes
+export const DIRECTION_CHANGE_INTERVAL = time.inGameMinutesToRealMs(DIRECTION_CHANGE_MINUTES);
+
+// Search mode duration (in in-game minutes)
+const SEARCH_MODE_MINUTES = 80;  // Search for 80 in-game minutes (~1.3 hours)
+export const SEARCH_MODE_DURATION = time.inGameMinutesToRealMs(SEARCH_MODE_MINUTES);
 
 // ============================================================
 // TREE GENERATION SETTINGS
@@ -72,8 +98,15 @@ export const GRASS_RADIUS = 25;             // Approximate grass radius at scale
 // ============================================================
 
 export const COLLECTION_RANGE = 50;          // Maximum distance to collect items (pixels)
-export const APPLE_COLLECTION_TIME = 6000;   // Time to collect apple in milliseconds (6 seconds) - doubled from 3000
-export const BERRY_COLLECTION_TIME = 5000;   // Time to collect berries in milliseconds (5 seconds) - doubled from 2500
+
+// Collection times (in in-game minutes)
+const APPLE_COLLECTION_MINUTES = 24;  // 24 in-game minutes to collect apple
+const BERRY_COLLECTION_MINUTES = 20;  // 20 in-game minutes to collect berries
+
+// Convert to real milliseconds
+export const APPLE_COLLECTION_TIME = time.inGameMinutesToRealMs(APPLE_COLLECTION_MINUTES);
+export const BERRY_COLLECTION_TIME = time.inGameMinutesToRealMs(BERRY_COLLECTION_MINUTES);
+
 export const MAX_INVENTORY_SIZE = 2;         // Maximum items character can carry
 
 // ============================================================

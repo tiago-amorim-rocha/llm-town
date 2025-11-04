@@ -34,6 +34,9 @@ A 2D survival scene visualization with procedurally generated trees, grass, a bo
 
 ### Key Files
 - **`main.js`** - Scene rendering, entity system, tree/grass generation, SVG loader
+- **`time.js`** - In-game time system and conversion functions
+- **`config.js`** - Game configuration values (uses in-game time)
+- **`cycle.js`** - Day/night cycle system
 - **`index.html`** - Entry point, cache busting loader, iOS optimizations
 - **`console.js`** - Debug console (🐛 button in bottom-right)
 - **`assets/`** - SVG art files for all game entities (tree, grass, bonfire, character, wolf)
@@ -86,6 +89,70 @@ Main scene setup in `initScene()`:
 - Debug console setup
 - Version checking start
 - Canvas creation and scene initialization
+
+## Time System
+
+The game uses an **accelerated in-game time system** where in-game time passes much faster than real time. This allows for a 24-hour day/night cycle to complete in just minutes of real gameplay.
+
+### Core Concepts
+
+**In-Game Time**: The game's internal clock (hours, minutes, seconds)
+- 24 hours per day
+- Day cycle: 8h day, 2h dusk, 12h night, 2h dawn (northern location)
+
+**Real Time**: Actual elapsed wall-clock time
+
+**TIME_MULTIPLIER**: How fast in-game time moves relative to real time
+- Current (testing): `240` → 1 in-game hour = 15 real seconds (full day = 6 real minutes)
+- Production (planned): `60` → 1 in-game hour = 1 real minute (full day = 24 real minutes)
+
+### Architecture
+
+**`time.js`** - Core time system module
+- Conversion functions: `inGameHoursToRealMs()`, `realMsToInGameSeconds()`, etc.
+- `getCurrentInGameTime()` - Returns current in-game time with day, hour, minute, phase
+- `formatInGameTime()` - Formats time as readable string (e.g., "Day 1, 14:30")
+
+**`config.js`** - Game configuration
+- All durations defined in **in-game time** (hours/minutes)
+- Automatically converted to real milliseconds for runtime use
+- Examples:
+  - Movement: 675 pixels per in-game hour
+  - Apple collection: 24 in-game minutes
+  - Food depletion: ~67 in-game hours
+
+**`cycle.js`** - Day/night cycle
+- Uses converted time values from config.js
+- Exposes `getInGameTime()` and `formatInGameTime()` for convenience
+- `resetCycleTime()` synchronizes both cycle and time tracking
+
+**Other modules** (`movement.js`, `actions.js`, `needs.js`)
+- Import config values that are already converted from in-game time
+- Use standard deltaTime-based calculations
+- All rates expressed in in-game time in comments for clarity
+
+### Benefits
+
+1. **Intuitive configuration**: "Collecting apples takes 24 in-game minutes" is clear
+2. **Easy testing**: Change TIME_MULTIPLIER to speed up/slow down entire game
+3. **Consistent pacing**: All systems use same time scale
+4. **Future-proof**: Easy to add time-based features (weather, seasons, schedules)
+
+### Common Tasks
+
+**Change game speed**: Edit `TIME_MULTIPLIER` in `time.js`
+
+**Add timed behavior**:
+```javascript
+import * as time from './time.js';
+const durationMs = time.inGameMinutesToRealMs(30); // 30 in-game minutes
+```
+
+**Display in-game time**:
+```javascript
+import { getInGameTime, formatInGameTime } from './cycle.js';
+const timeStr = formatInGameTime(); // "Day 1, 14:30"
+```
 
 ## Automated Systems
 
@@ -268,14 +335,17 @@ assets/
 │   └── berry.svg                 # Berry item
 ├── index.html                    # Entry point + cache busting
 ├── main.js                       # Scene logic, entities, rendering, SVG loader
+├── time.js                       # In-game time system and conversions
+├── config.js                     # Game configuration values (uses in-game time)
+├── cycle.js                      # Day/night cycle system
 ├── console.js                    # Debug console module
-├── config.js                     # Game configuration values
 ├── entities.js                   # Entity classes (Entity, DummyEntity, SmartEntity)
 ├── actions.js                    # Entity action system
+├── needs.js                      # Needs system (hunger, energy, warmth, HP)
 ├── visibility.js                 # Visibility/fog of war system
 ├── movement.js                   # Entity movement system
 ├── rendering.js                  # SVG rendering module
-├── cycle.js                      # Day/night cycle system
+├── utils.js                      # Utility functions
 ├── testUI.js                     # Test UI for debugging
 ├── manifest.json                 # PWA configuration
 ├── icon-512.svg                  # App icon
