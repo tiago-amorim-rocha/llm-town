@@ -17,9 +17,9 @@ import { getInGameTime, formatInGameTime } from './cycle.js';
 // ============================================================
 
 // Gemini API configuration
-const GEMINI_API_KEY = 'AIzaSyBjwZPqsu6vJf7FYZ9lB8DWr_PL6sdZ_KM'; // TODO: Move to config or env
-const GEMINI_MODEL = 'gemini-1.5-flash'; // Fast, cost-effective
-const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+const GEMINI_API_KEY = 'AIzaSyCpWEffL6jIpkSkUfZu-jj3BC_btV-piRk'; // From llm-exp repo
+const GEMINI_MODEL = 'gemini-2.0-flash-exp'; // Fastest model (experimental)
+const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
 
 // Rate limiting
 const MAX_CALLS_PER_WINDOW = 5;
@@ -380,7 +380,7 @@ async function callGemini(prompt) {
     }
   };
 
-  const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+  const response = await fetch(GEMINI_API_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
