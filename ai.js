@@ -126,16 +126,25 @@ export function shouldTriggerDecision(entity, context = {}) {
     return true;
   }
 
-  // Don't trigger on new entity visibility if we're currently executing a movement action
-  // (this was causing interruptions mid-action)
+  // New important entity visible
   if (context.newEntityVisible) {
-    if (entity.currentMovementAction) {
-      // Skip visibility triggers while actively moving
-      return false;
-    }
-
-    const importantTypes = ['tree', 'grass', 'bonfire', 'apple', 'berry', 'stick'];
+    const importantTypes = ['tree', 'grass', 'bonfire', 'apple', 'berry', 'stick', 'wolf'];
     if (importantTypes.includes(context.newEntityVisible.type)) {
+
+      // Don't interrupt if we're moving to this exact entity
+      // (prevents loop: moveTo grass -> see grass -> moveTo grass again)
+      if (entity.currentMovementAction === 'moving_to' && entity.movementActionData.target) {
+        const currentTarget = entity.movementActionData.target;
+        // Check if the newly visible entity is our current target
+        if (currentTarget.type === context.newEntityVisible.type &&
+            currentTarget.x === context.newEntityVisible.x &&
+            currentTarget.y === context.newEntityVisible.y) {
+          // Same target, don't interrupt
+          return false;
+        }
+      }
+
+      // Different entity or not moving - allow trigger
       return true;
     }
   }
