@@ -1,7 +1,11 @@
 // === NEEDS SYSTEM ===
 // Manages hunger, tiredness, cold, and HP for SmartEntity
+//
+// TIME SYSTEM: All rates are defined in terms of in-game time (per in-game hour)
+// and converted to per real second for use in update calculations.
 
 import * as config from './config.js';
+import * as time from './time.js';
 
 // ============================================================
 // NEEDS CONFIGURATION
@@ -25,15 +29,36 @@ export const FOOD_MET = 50;
 export const WARMTH_MET = 50;
 export const ENERGY_MET = 50;
 
-// Rates (per second) - LOW IS ALWAYS BAD
-export const FOOD_DECREASE_RATE = 0.1;          // ~16.6 min to deplete (was hunger decrease)
-export const ENERGY_IDLE_RATE = 0.05;           // Slow decrease when idle (was tiredness increase)
-export const ENERGY_WALK_RATE = 0.15;           // Faster decrease when walking
-export const ENERGY_RUN_RATE = 0.3;             // Even faster decrease when running
-export const WARMTH_DECREASE_RATE = 0.2;        // When away from bonfire (was cold increase)
-export const WARMTH_INCREASE_RATE = 0.5;        // When near bonfire (was cold decrease)
-export const HP_DECREASE_RATE = 0.5;            // Per critical need per second
-export const HP_REGEN_RATE = 0.3;               // When all needs met
+// Rates (defined in in-game time, converted to real time below) - LOW IS ALWAYS BAD
+// Food depletes in ~2.78 in-game days (66.7 in-game hours)
+const FOOD_DECREASE_PER_INGAME_HOUR = 1.5;     // 100 / 66.7 ≈ 1.5 per hour
+
+// Energy rates (in-game hours)
+const ENERGY_IDLE_PER_INGAME_HOUR = 0.75;      // Slow decrease when idle (~133 hours to deplete)
+const ENERGY_WALK_PER_INGAME_HOUR = 2.25;      // Faster decrease when walking (~44 hours)
+const ENERGY_RUN_PER_INGAME_HOUR = 4.5;        // Even faster decrease when running (~22 hours)
+
+// Warmth rates (in-game hours)
+const WARMTH_DECREASE_PER_INGAME_HOUR = 3.0;   // When away from bonfire (~33 hours)
+const WARMTH_INCREASE_PER_INGAME_HOUR = 7.5;   // When near bonfire (~13 hours to full)
+
+// HP rates (in-game hours)
+const HP_DECREASE_PER_INGAME_HOUR = 7.5;       // Per critical need (~13 hours to death)
+const HP_REGEN_PER_INGAME_HOUR = 4.5;          // When all needs met (~22 hours to full)
+
+// Sleep energy restore rate (in-game hours)
+const SLEEP_ENERGY_RESTORE_PER_INGAME_HOUR = 22.5;  // Fast recovery (~4.5 hours to full)
+
+// Convert to per real second for use in calculations
+export const FOOD_DECREASE_RATE = FOOD_DECREASE_PER_INGAME_HOUR / 3600 * time.TIME_MULTIPLIER;
+export const ENERGY_IDLE_RATE = ENERGY_IDLE_PER_INGAME_HOUR / 3600 * time.TIME_MULTIPLIER;
+export const ENERGY_WALK_RATE = ENERGY_WALK_PER_INGAME_HOUR / 3600 * time.TIME_MULTIPLIER;
+export const ENERGY_RUN_RATE = ENERGY_RUN_PER_INGAME_HOUR / 3600 * time.TIME_MULTIPLIER;
+export const WARMTH_DECREASE_RATE = WARMTH_DECREASE_PER_INGAME_HOUR / 3600 * time.TIME_MULTIPLIER;
+export const WARMTH_INCREASE_RATE = WARMTH_INCREASE_PER_INGAME_HOUR / 3600 * time.TIME_MULTIPLIER;
+export const HP_DECREASE_RATE = HP_DECREASE_PER_INGAME_HOUR / 3600 * time.TIME_MULTIPLIER;
+export const HP_REGEN_RATE = HP_REGEN_PER_INGAME_HOUR / 3600 * time.TIME_MULTIPLIER;
+export const SLEEP_ENERGY_RESTORE_RATE = SLEEP_ENERGY_RESTORE_PER_INGAME_HOUR / 3600 * time.TIME_MULTIPLIER;
 
 // Bonfire warmth radius
 export const BONFIRE_WARMTH_RADIUS = 100;       // Stay within this distance to warm up
@@ -74,7 +99,7 @@ export function updateNeeds(entity, deltaTime, bonfireEntity) {
 
   if (entity.isSleeping) {
     // Sleeping restores energy (increases it)
-    entity.energy = Math.min(100, entity.energy + 1.5 * dt); // Fast recovery
+    entity.energy = Math.min(100, entity.energy + SLEEP_ENERGY_RESTORE_RATE * dt);
   } else if (entity.currentMovementAction === 'moving_to' || entity.currentMovementAction === 'wandering') {
     // Check if running (based on speed multiplier in movement system)
     const isRunning = entity.isRunning || false;

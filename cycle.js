@@ -1,10 +1,11 @@
 // === DAY/NIGHT CYCLE MODULE ===
-// Handles day/night cycle calculations
+// Handles day/night cycle calculations and in-game time tracking
 
 import * as config from './config.js';
+import * as time from './time.js';
 import { easeInOutCubic } from './utils.js';
 
-// Day/night configuration
+// Day/night configuration (imported from config, which converts from in-game hours)
 const DAY_DURATION = config.DAY_DURATION;
 const DUSK_DURATION = config.DUSK_DURATION;
 const NIGHT_DURATION = config.NIGHT_DURATION;
@@ -61,4 +62,21 @@ export function getDarknessOpacity() {
     default:
       return 0;
   }
+}
+
+// Reset cycle time (e.g., on scene reset)
+export function resetCycleTime() {
+  cycleStartTime = Date.now();
+  time.resetCycleTime();
+}
+
+// Get current in-game time
+// Returns { day, hour, minute, second, phase, totalSeconds, totalHours }
+export function getInGameTime() {
+  return time.getCurrentInGameTime();
+}
+
+// Format in-game time as readable string (e.g., "Day 1, 14:30")
+export function formatInGameTime(timeObject) {
+  return time.formatInGameTime(timeObject || getInGameTime());
 }

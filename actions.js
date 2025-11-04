@@ -1,12 +1,16 @@
 // === ACTIONS MODULE ===
 // Action execution system for SmartEntity
+//
+// TIME SYSTEM: Action durations (collection times, search duration, etc.) are
+// defined in config.js in terms of in-game time (minutes/hours) and converted
+// to real milliseconds for use here.
 
 import * as config from './config.js';
 import { Item, DummyEntity } from './entities.js';
 import { distance } from './utils.js';
 import * as needs from './needs.js';
 
-// Import configuration
+// Import configuration (already converted from in-game time to real time in config.js)
 const COLLECTION_RANGE = config.COLLECTION_RANGE;
 const APPLE_COLLECTION_TIME = config.APPLE_COLLECTION_TIME;
 const BERRY_COLLECTION_TIME = config.BERRY_COLLECTION_TIME;

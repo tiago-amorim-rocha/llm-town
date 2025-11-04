@@ -1,11 +1,15 @@
 // === MOVEMENT MODULE ===
 // Handles entity movement logic
+//
+// TIME SYSTEM: Movement speed is defined in config.js in terms of in-game time
+// (pixels per in-game hour) and converted to pixels per real second for use here.
+// The deltaTime parameter ensures frame-independent movement.
 
 import * as config from './config.js';
 import { randomDirection } from './utils.js';
 import * as needs from './needs.js';
 
-// Movement configuration
+// Movement configuration (already converted from in-game time to real time in config.js)
 const MOVEMENT_SPEED = config.MOVEMENT_SPEED;
 const DIRECTION_CHANGE_INTERVAL = config.DIRECTION_CHANGE_INTERVAL;
 
