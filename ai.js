@@ -29,6 +29,17 @@ const MIN_TIME_BETWEEN_CALLS = 2000; // 2 seconds minimum between calls
 // Decision triggers
 const IDLE_TRIGGER_DELAY = 5000; // Ask LLM if idle for 5 seconds
 
+// Entity categories for smart interrupt logic
+const ENTITY_CATEGORIES = {
+  apple: 'food',
+  berry: 'food',
+  stick: 'fuel',
+  bonfire: 'warmth',
+  wolf: 'threat',
+  tree: 'source',    // Source of food (apples)
+  grass: 'source'    // Source of food (berries)
+};
+
 // ============================================================
 // STATE TRACKING
 // ============================================================
@@ -128,25 +139,45 @@ export function shouldTriggerDecision(entity, context = {}) {
 
   // New important entity visible
   if (context.newEntityVisible) {
-    const importantTypes = ['tree', 'grass', 'bonfire', 'apple', 'berry', 'stick', 'wolf'];
-    if (importantTypes.includes(context.newEntityVisible.type)) {
+    const newEntityType = context.newEntityVisible.type;
+    const newCategory = ENTITY_CATEGORIES[newEntityType];
 
-      // Don't interrupt if we're moving to this exact entity
-      // (prevents loop: moveTo grass -> see grass -> moveTo grass again)
-      if (entity.currentMovementAction === 'moving_to' && entity.movementActionData.target) {
-        const currentTarget = entity.movementActionData.target;
-        // Check if the newly visible entity is our current target
-        if (currentTarget.type === context.newEntityVisible.type &&
-            currentTarget.x === context.newEntityVisible.x &&
-            currentTarget.y === context.newEntityVisible.y) {
-          // Same target, don't interrupt
-          return false;
-        }
+    // Only care about categorized entities
+    if (!newCategory) {
+      return false;
+    }
+
+    // If currently moving to a target, check if we should interrupt
+    if (entity.currentMovementAction === 'moving_to' && entity.movementActionData.target) {
+      const currentTarget = entity.movementActionData.target;
+
+      // Same exact entity (position match) - don't interrupt
+      if (currentTarget.type === newEntityType &&
+          currentTarget.x === context.newEntityVisible.x &&
+          currentTarget.y === context.newEntityVisible.y) {
+        return false;
       }
 
-      // Different entity or not moving - allow trigger
+      // Threats always interrupt
+      if (newCategory === 'threat') {
+        return true;
+      }
+
+      // Check category of current target
+      const currentCategory = ENTITY_CATEGORIES[currentTarget.type];
+
+      // Same category (e.g., both food, both fuel) - don't interrupt
+      // Let AI finish current action rather than thrash between similar resources
+      if (currentCategory === newCategory) {
+        return false;
+      }
+
+      // Different category - allow interrupt
       return true;
     }
+
+    // Not moving or wandering - allow trigger for any new entity
+    return true;
   }
 
   // Idle too long
