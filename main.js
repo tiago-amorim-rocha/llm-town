@@ -777,6 +777,7 @@ function initAIToggleButton() {
 
       if (isEnabled) {
         ai.disableAI(characterEntity);
+        ai.hideBubble();
         aiToggleButton.classList.remove('enabled');
         aiToggleButton.title = 'Enable AI Control';
         console.log('🤖 AI Control DISABLED - Manual control active');
@@ -895,6 +896,11 @@ function gameLoop(timestamp) {
 
   // Update visibility for smart entities
   updateVisibility(entities);
+
+  // Update AI bubble position (if visible)
+  if (characterEntity && ai.isAIEnabled(characterEntity)) {
+    ai.updateBubblePosition(characterEntity);
+  }
 
   render(canvas, entities, SVG_COMPONENTS, getCharacterSVG, characterEntity);
 

@@ -494,6 +494,61 @@
     #ai-toggle-button:active {
       transform: scale(0.95);
     }
+
+    /* AI Speech Bubble */
+    #ai-bubble {
+      position: fixed;
+      background: rgba(255, 255, 255, 0.95);
+      color: #333;
+      border: 3px solid #333;
+      border-radius: 20px;
+      padding: 10px 16px;
+      font-size: 14px;
+      font-weight: 500;
+      z-index: 200;
+      pointer-events: none;
+      opacity: 0;
+      transform: translate(-50%, -100%) translateY(-10px) scale(0.8);
+      transition: opacity 0.3s, transform 0.3s;
+      max-width: 200px;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      display: none;
+    }
+    #ai-bubble.show {
+      display: block;
+      opacity: 1;
+      transform: translate(-50%, -100%) translateY(0) scale(1);
+    }
+    #ai-bubble::after {
+      content: '';
+      position: absolute;
+      bottom: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 12px solid transparent;
+      border-right: 12px solid transparent;
+      border-top: 12px solid #333;
+    }
+    #ai-bubble::before {
+      content: '';
+      position: absolute;
+      bottom: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 10px solid transparent;
+      border-right: 10px solid transparent;
+      border-top: 10px solid rgba(255, 255, 255, 0.95);
+      z-index: 1;
+    }
+    #ai-bubble-emoji {
+      font-size: 20px;
+      margin-right: 6px;
+    }
   </style>
 </head>
 
@@ -531,6 +586,12 @@
         <div class="need-bar-fill warmth" id="warmth-bar" style="width: 100%"></div>
       </div>
     </div>
+  </div>
+
+  <!-- AI Speech Bubble -->
+  <div id="ai-bubble">
+    <span id="ai-bubble-emoji"></span>
+    <span id="ai-bubble-text"></span>
   </div>
 
   <!-- AI Toggle Button -->

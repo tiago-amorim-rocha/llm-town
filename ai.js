@@ -541,6 +541,11 @@ async function executeAction(decision, entity, entities) {
   console.log(`   Action: ${next_action.name}(${JSON.stringify(next_action.args).slice(1, -1)})`);
   console.log(`   Bubble: ${bubble?.emoji} "${bubble?.text}"`);
 
+  // Show speech bubble
+  if (bubble) {
+    showBubble(entity, bubble);
+  }
+
   // Validate action
   const validation = validateAction(next_action, entity, entities);
   if (!validation.valid) {
@@ -673,6 +678,61 @@ export async function triggerDecision(entity, entities, context = {}) {
 
     // Fallback: do nothing, just warn
     console.warn('⚠️ AI disabled due to error. Entity will remain idle.');
+  }
+}
+
+// ============================================================
+// SPEECH BUBBLE UI
+// ============================================================
+
+let currentBubbleTimeout = null;
+
+export function showBubble(entity, bubble) {
+  if (!bubble || !bubble.text) return;
+
+  const bubbleEl = document.getElementById('ai-bubble');
+  const emojiEl = document.getElementById('ai-bubble-emoji');
+  const textEl = document.getElementById('ai-bubble-text');
+
+  if (!bubbleEl || !emojiEl || !textEl) return;
+
+  // Update content
+  emojiEl.textContent = bubble.emoji || '💭';
+  textEl.textContent = bubble.text;
+
+  // Position above character
+  updateBubblePosition(entity);
+
+  // Show bubble
+  bubbleEl.classList.add('show');
+
+  // Hide after 5 seconds
+  if (currentBubbleTimeout) {
+    clearTimeout(currentBubbleTimeout);
+  }
+  currentBubbleTimeout = setTimeout(() => {
+    bubbleEl.classList.remove('show');
+  }, 5000);
+}
+
+export function updateBubblePosition(entity) {
+  const bubbleEl = document.getElementById('ai-bubble');
+  if (!bubbleEl) return;
+
+  // Position bubble above character (character.y - offset)
+  const bubbleOffset = 60; // Distance above character
+  bubbleEl.style.left = `${entity.x}px`;
+  bubbleEl.style.top = `${entity.y - bubbleOffset}px`;
+}
+
+export function hideBubble() {
+  const bubbleEl = document.getElementById('ai-bubble');
+  if (bubbleEl) {
+    bubbleEl.classList.remove('show');
+  }
+  if (currentBubbleTimeout) {
+    clearTimeout(currentBubbleTimeout);
+    currentBubbleTimeout = null;
   }
 }
 
