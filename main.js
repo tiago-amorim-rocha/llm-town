@@ -366,11 +366,19 @@ function hasValidTargets(actionId) {
       return visibleTargets.filter(e => e !== characterEntity).length > 0;
 
     case 'collect':
-      // Check if there are entities with items
+      // Check if there are entities with items WITHIN COLLECTION_RANGE
       const collectTargets = Array.from(characterEntity.visibleEntities || entities);
-      return collectTargets.some(e =>
-        e !== characterEntity && e.inventory && e.inventory.items.length > 0
-      );
+      return collectTargets.some(e => {
+        if (e === characterEntity || !e.inventory || e.inventory.items.length === 0) {
+          return false;
+        }
+        // Check distance to entity
+        const dist = Math.sqrt(
+          (characterEntity.x - e.x) ** 2 +
+          (characterEntity.y - e.y) ** 2
+        );
+        return dist <= config.COLLECTION_RANGE;
+      });
 
     case 'drop':
       // Check if character has items
@@ -516,10 +524,20 @@ function getTargetsForAction(actionId) {
         }));
 
     case 'collect':
-      // Get entities with items in their inventory
+      // Get entities with items in their inventory WITHIN COLLECTION_RANGE
       const collectTargets = Array.from(characterEntity.visibleEntities || entities);
       return collectTargets
-        .filter(e => e !== characterEntity && e.inventory && e.inventory.items.length > 0)
+        .filter(e => {
+          if (e === characterEntity || !e.inventory || e.inventory.items.length === 0) {
+            return false;
+          }
+          // Check distance to entity
+          const dist = Math.sqrt(
+            (characterEntity.x - e.x) ** 2 +
+            (characterEntity.y - e.y) ** 2
+          );
+          return dist <= config.COLLECTION_RANGE;
+        })
         .flatMap(e => {
           return e.inventory.items.map((item, idx) => ({
             label: `${getEntityEmoji(item.type)} ${item.type} from ${e.type}`,
