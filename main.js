@@ -9,6 +9,7 @@ import { updateVisibility } from './visibility.js';
 import { updateEntityPosition, initMovementState, clearMovementState } from './movement.js';
 import { render } from './rendering.js';
 import { updateNeeds } from './needs.js';
+import * as ai from './ai.js';
 
 // ============================================================
 // AUTO-RELOAD SYSTEM
@@ -186,6 +187,17 @@ function initScene() {
   );
   entities.push(characterEntity);
   initMovementState(characterEntity);
+
+  // Setup AI event listeners for character
+  characterEntity.on('entityVisible', (entity) => {
+    // Trigger AI decision when important entities become visible
+    const importantTypes = ['tree', 'grass', 'bonfire', 'stick', 'apple', 'berry'];
+    if (importantTypes.includes(entity.type)) {
+      ai.triggerDecision(characterEntity, entities, {
+        newEntityVisible: entity
+      });
+    }
+  });
 
   // Place wolf (not friendly)
   const wolfX = Math.random() * width;
@@ -752,6 +764,87 @@ function initRespawnButton() {
   }
 }
 
+function initAIToggleButton() {
+  const aiToggleButton = document.getElementById('ai-toggle-button');
+  if (aiToggleButton) {
+    aiToggleButton.addEventListener('click', () => {
+      if (!characterEntity) {
+        console.warn('⚠️ Character not initialized yet');
+        return;
+      }
+
+      const isEnabled = ai.isAIEnabled(characterEntity);
+
+      if (isEnabled) {
+        ai.disableAI(characterEntity);
+        aiToggleButton.classList.remove('enabled');
+        aiToggleButton.title = 'Enable AI Control';
+        console.log('🤖 AI Control DISABLED - Manual control active');
+      } else {
+        ai.enableAI(characterEntity);
+        aiToggleButton.classList.add('enabled');
+        aiToggleButton.title = 'Disable AI Control';
+        console.log('🤖 AI Control ENABLED - Agent is thinking...');
+
+        // Trigger initial decision
+        ai.triggerDecision(characterEntity, entities, {});
+      }
+    });
+  }
+}
+
+// ============================================================
+// AI SYSTEM TRACKING
+// ============================================================
+
+// Track previous need states to detect critical threshold crossings
+const previousNeedStates = new Map();
+
+function checkNeedThresholds(entity) {
+  if (!previousNeedStates.has(entity)) {
+    previousNeedStates.set(entity, {
+      foodCritical: false,
+      warmthCritical: false,
+      energyCritical: false,
+      hpLow: false
+    });
+  }
+
+  const prev = previousNeedStates.get(entity);
+  const context = {};
+
+  // Check if any need just became critical
+  if (entity.food < 30 && !prev.foodCritical) {
+    prev.foodCritical = true;
+    context.needBecameCritical = 'food';
+  } else if (entity.food >= 30 && prev.foodCritical) {
+    prev.foodCritical = false;
+  }
+
+  if (entity.warmth < 30 && !prev.warmthCritical) {
+    prev.warmthCritical = true;
+    context.needBecameCritical = 'warmth';
+  } else if (entity.warmth >= 30 && prev.warmthCritical) {
+    prev.warmthCritical = false;
+  }
+
+  if (entity.energy < 30 && !prev.energyCritical) {
+    prev.energyCritical = true;
+    context.needBecameCritical = 'energy';
+  } else if (entity.energy >= 30 && prev.energyCritical) {
+    prev.energyCritical = false;
+  }
+
+  if (entity.hp < 30 && !prev.hpLow) {
+    prev.hpLow = true;
+    context.hpLow = true;
+  } else if (entity.hp >= 30 && prev.hpLow) {
+    prev.hpLow = false;
+  }
+
+  return context;
+}
+
 // ============================================================
 // GAME LOOP
 // ============================================================
@@ -778,6 +871,12 @@ function gameLoop(timestamp) {
     // Check for death
     if (characterEntity.isDead) {
       showGameOver();
+    }
+
+    // Check for need threshold changes (for AI triggers)
+    const needContext = checkNeedThresholds(characterEntity);
+    if (Object.keys(needContext).length > 0) {
+      ai.triggerDecision(characterEntity, entities, needContext);
     }
   }
   if (wolfEntity && wolfEntity.food !== undefined) {
@@ -820,6 +919,7 @@ async function init() {
   initReloadButton();
   initRespawnButton();
   initActionMenu();
+  initAIToggleButton();
   showReloadButton(); // TEMPORARILY ALWAYS SHOW FOR TESTING
   setInterval(checkForNewVersion, VERSION_CHECK_INTERVAL);
   console.log(`🔍 Version checking enabled (every ${VERSION_CHECK_INTERVAL / 1000}s)`);

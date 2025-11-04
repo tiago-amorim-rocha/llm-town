@@ -462,6 +462,38 @@
     #action-menu-button:active {
       transform: scale(0.95);
     }
+
+    /* AI Toggle Button */
+    #ai-toggle-button {
+      position: fixed;
+      bottom: calc(140px + env(safe-area-inset-bottom));
+      right: calc(20px + env(safe-area-inset-right));
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: #1a1d23;
+      border: 2px solid #333;
+      color: #888;
+      font-size: 24px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      transition: all 0.2s;
+    }
+    #ai-toggle-button.enabled {
+      background: #27ae60;
+      border-color: #229954;
+      color: white;
+      box-shadow: 0 0 15px rgba(39, 174, 96, 0.5);
+    }
+    #ai-toggle-button:hover {
+      transform: scale(1.05);
+    }
+    #ai-toggle-button:active {
+      transform: scale(0.95);
+    }
   </style>
 </head>
 
@@ -500,6 +532,9 @@
       </div>
     </div>
   </div>
+
+  <!-- AI Toggle Button -->
+  <button id="ai-toggle-button" title="Toggle AI Control">🤖</button>
 
   <!-- Action Menu Button -->
   <button id="action-menu-button" title="Open Action Menu">🎮</button>
