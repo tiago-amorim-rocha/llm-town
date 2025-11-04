@@ -115,25 +115,27 @@ export function shouldTriggerDecision(entity, context = {}) {
 
   // High priority triggers
   if (context.actionCompleted) {
-    console.log('🎯 Trigger: Action completed');
     return true;
   }
 
   if (context.needBecameCritical) {
-    console.log('🚨 Trigger: Need became critical');
     return true;
   }
 
   if (context.hpLow && entity.hp < 30) {
-    console.log('💔 Trigger: HP critical');
     return true;
   }
 
-  // New important entity visible (food sources, bonfire)
+  // Don't trigger on new entity visibility if we're currently executing a movement action
+  // (this was causing interruptions mid-action)
   if (context.newEntityVisible) {
+    if (entity.currentMovementAction) {
+      // Skip visibility triggers while actively moving
+      return false;
+    }
+
     const importantTypes = ['tree', 'grass', 'bonfire', 'apple', 'berry', 'stick'];
     if (importantTypes.includes(context.newEntityVisible.type)) {
-      console.log(`👀 Trigger: Discovered ${context.newEntityVisible.type}`);
       return true;
     }
   }
@@ -142,7 +144,6 @@ export function shouldTriggerDecision(entity, context = {}) {
   if (entity.currentMovementAction === null) {
     const idleTime = Date.now() - state.lastCallTime;
     if (idleTime > IDLE_TRIGGER_DELAY) {
-      console.log('💤 Trigger: Idle too long');
       return true;
     }
   }
@@ -519,7 +520,6 @@ function resolveTarget(targetSpec, entity, entities) {
   // If not visible but useMemory is requested, use memory
   if (!target && entity.memory.discovered.has(targetType)) {
     const remembered = entity.memory.discovered.get(targetType);
-    console.log(`📍 Using memory to navigate to ${targetType} at (${remembered.x}, ${remembered.y})`);
     return { x: remembered.x, y: remembered.y, type: targetType };
   }
 
@@ -533,13 +533,6 @@ async function executeAction(decision, entity, entities) {
   // Update state
   state.currentIntent = intent;
   state.currentPlan = plan || [];
-
-  // Log decision
-  console.log(`🤖 AI Decision for ${entity.type}:`);
-  console.log(`   Intent: ${intent}`);
-  console.log(`   Plan: ${plan?.join(' → ')}`);
-  console.log(`   Action: ${next_action.name}(${JSON.stringify(next_action.args).slice(1, -1)})`);
-  console.log(`   Bubble: ${bubble?.emoji} "${bubble?.text}"`);
 
   // Show speech bubble
   if (bubble) {
@@ -584,8 +577,6 @@ async function executeAction(decision, entity, entities) {
       result: result,
       timestamp: Date.now()
     });
-
-    console.log(`${result.success ? '✅' : '❌'} Action ${next_action.name} ${result.success ? 'succeeded' : 'failed'}`);
 
     // Trigger new decision after action completes
     if (state.enabled) {
@@ -652,13 +643,23 @@ export async function triggerDecision(entity, entities, context = {}) {
     // Record the call for rate limiting
     recordCall(entity);
 
-    console.log('🧠 Calling LLM for decision...');
-
     // Build prompt
     const prompt = buildPrompt(entity, entities, context);
 
+    console.log('\n' + '='.repeat(80));
+    console.log('🧠 LLM PROMPT:');
+    console.log('='.repeat(80));
+    console.log(prompt);
+    console.log('='.repeat(80) + '\n');
+
     // Call LLM
     const responseText = await callGemini(prompt);
+
+    console.log('\n' + '='.repeat(80));
+    console.log('🤖 LLM RESPONSE:');
+    console.log('='.repeat(80));
+    console.log(responseText);
+    console.log('='.repeat(80) + '\n');
 
     // Parse response
     const parseResult = parseResponse(responseText);
