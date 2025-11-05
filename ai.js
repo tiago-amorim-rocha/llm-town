@@ -10,7 +10,7 @@
 
 import * as config from './config.js';
 import { distance } from './utils.js';
-import { getInGameTime, formatInGameTime } from './cycle.js';
+import { getInGameTime, formatInGameTime, getCycleState } from './cycle.js';
 import * as translator from './translator.js';
 
 // ============================================================
@@ -26,9 +26,6 @@ const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/
 const MAX_CALLS_PER_WINDOW = 5;
 const RATE_LIMIT_WINDOW_MS = 10000; // 10 seconds
 const MIN_TIME_BETWEEN_CALLS = 2000; // 2 seconds minimum between calls
-
-// Decision triggers
-const IDLE_TRIGGER_DELAY = 5000; // Ask LLM if idle for 5 seconds
 
 // Entity categories for smart interrupt logic
 const ENTITY_CATEGORIES = {
@@ -59,7 +56,8 @@ function getAIState(entity) {
       currentIntent: '',
       actionHistory: [], // Keep all actions for debugging
       lastActionResult: null,
-      isPending: false // Track if LLM call is currently in progress
+      isPending: false, // Track if LLM call is currently in progress
+      lastCycleState: null // Track last cycle phase to detect dusk/dawn transitions
     });
   }
   return aiState.get(entity);
@@ -155,6 +153,29 @@ export function shouldTriggerDecision(entity, context = {}) {
       return false;
     }
 
+    // OPTIMIZATION: Don't trigger LLM for common "source" entities (grass, tree)
+    // unless they're critically relevant. Sources are too common and create noise.
+    if (newCategory === 'source') {
+      // Only trigger if:
+      // 1. Currently searching for items from this specific source type
+      if (entity.currentMovementAction === 'searching' && entity.movementActionData.searchTarget) {
+        const searchTarget = entity.movementActionData.searchTarget;
+        // Check if this source produces what we're searching for
+        // tree -> apple, grass -> berry
+        const sourceProduces = {
+          tree: 'apple',
+          grass: 'berry'
+        };
+        if (sourceProduces[newEntityType] === searchTarget) {
+          // Found the right source! But don't interrupt - let search continue
+          // The search action will handle collection automatically
+          return false;
+        }
+      }
+      // Otherwise, ignore source entities entirely
+      return false;
+    }
+
     // Threats ALWAYS interrupt
     if (newCategory === 'threat') {
       return true;
@@ -163,6 +184,13 @@ export function shouldTriggerDecision(entity, context = {}) {
     // If currently searching for something specific
     if (entity.currentMovementAction === 'searching' && entity.movementActionData.searchTarget) {
       const searchCategory = entity.movementActionData.targetCategory;
+      const searchTarget = entity.movementActionData.searchTarget;
+
+      // If we found exactly what we're searching for, don't interrupt
+      // Let the search action complete and collect automatically
+      if (newEntityType === searchTarget) {
+        return false;
+      }
 
       // Same category as what we're searching for - don't interrupt
       // (e.g., searching for berry, found apple - both food, let search continue)
@@ -170,9 +198,9 @@ export function shouldTriggerDecision(entity, context = {}) {
         return false;
       }
 
-      // Different category - allow interrupt
-      // (e.g., searching for berry, found wolf - different priority)
-      return true;
+      // Different category - allow interrupt only if high priority (threat)
+      // Otherwise let current search complete
+      return false;
     }
 
     // If currently moving to a target, check if we should interrupt
@@ -195,27 +223,48 @@ export function shouldTriggerDecision(entity, context = {}) {
         return false;
       }
 
-      // Different category - allow interrupt
+      // Different category - only interrupt for critical needs or bonfire
+      // Food/fuel can wait until current action completes
+      if (newCategory === 'food' || newCategory === 'fuel') {
+        return false;
+      }
+
       return true;
     }
 
-    // If aimlessly wandering (no specific goal), allow trigger for any new entity
-    return true;
-  }
-
-  // Idle too long
-  if (entity.currentMovementAction === null) {
-    const idleTime = Date.now() - state.lastCallTime;
-    if (idleTime > IDLE_TRIGGER_DELAY) {
+    // If aimlessly wandering (no specific goal), only trigger for actionable items
+    // Not for sources (too common, create noise)
+    if (newCategory === 'food' || newCategory === 'fuel' || newCategory === 'warmth') {
       return true;
     }
+
+    return false;
   }
 
-  // Required heartbeat (every in-game hour)
-  // Skip if recently called for other reasons or if sleeping
-  const timeSinceLastCall = Date.now() - state.lastCallTime;
-  if (timeSinceLastCall >= config.HEARTBEAT_INTERVAL && !entity.isSleeping) {
-    return true;
+  // OPTIMIZATION: Removed 5s idle trigger
+  // Now only triggers on actual need state changes (handled above)
+  // or during scheduled heartbeats (dusk/dawn)
+
+  // Required heartbeat (twice per day: dusk and dawn transitions only)
+  // Check if we've transitioned into dusk or dawn phase
+  if (!entity.isSleeping) {
+    const currentCycle = getCycleState();
+    const currentPhase = currentCycle.state;
+
+    // Check if we've transitioned into dusk or dawn
+    if ((currentPhase === 'dusk' || currentPhase === 'dawn') && state.lastCycleState !== currentPhase) {
+      // Only trigger if we haven't called LLM very recently (avoid double-triggers)
+      const timeSinceLastCall = Date.now() - state.lastCallTime;
+      if (timeSinceLastCall > 10000) { // At least 10 seconds since last call
+        state.lastCycleState = currentPhase; // Update tracked phase
+        return true;
+      }
+    }
+
+    // Update tracked phase for transition detection
+    if (state.lastCycleState !== currentPhase) {
+      state.lastCycleState = currentPhase;
+    }
   }
 
   return false;
