@@ -19,7 +19,7 @@ import * as translator from './translator.js';
 
 // Gemini API configuration
 const GEMINI_API_KEY = 'AIzaSyCpWEffL6jIpkSkUfZu-jj3BC_btV-piRk'; // From llm-exp repo
-const GEMINI_MODEL = 'gemini-2.0-flash-exp'; // Fastest model (experimental)
+const GEMINI_MODEL = 'gemini-2.0-flash-lite'; // Fastest model (experimental)
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
 
 // Rate limiting
