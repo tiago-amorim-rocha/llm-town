@@ -195,21 +195,21 @@ function initScene() {
     }
   });
 
-  // Place wolf (not friendly)
-  const wolfX = Math.random() * width;
-  const wolfY = Math.random() * height * 0.7;
-  const wolfScale = characterScale * 1.2;
-  wolfEntity = new SmartEntity(
-    'wolf',
-    wolfX,
-    wolfY,
-    wolfScale,
-    5,
-    config.DAY_VISIBILITY_RADIUS * 1.2,
-    false
-  );
-  entities.push(wolfEntity);
-  initMovementState(wolfEntity);
+  // Place wolf (not friendly) - DISABLED FOR NOW
+  // const wolfX = Math.random() * width;
+  // const wolfY = Math.random() * height * 0.7;
+  // const wolfScale = characterScale * 1.2;
+  // wolfEntity = new SmartEntity(
+  //   'wolf',
+  //   wolfX,
+  //   wolfY,
+  //   wolfScale,
+  //   5,
+  //   config.DAY_VISIBILITY_RADIUS * 1.2,
+  //   false
+  // );
+  // entities.push(wolfEntity);
+  // initMovementState(wolfEntity);
 
   // Generate trees
   const treeCount = config.TREE_COUNT_MIN + Math.floor(Math.random() * (config.TREE_COUNT_MAX - config.TREE_COUNT_MIN + 1));
@@ -857,7 +857,7 @@ function gameLoop(timestamp) {
 
   // Update movement
   updateEntityPosition(characterEntity, isCollecting, deltaTime / 1000);
-  updateEntityPosition(wolfEntity, false, deltaTime / 1000);
+  // updateEntityPosition(wolfEntity, false, deltaTime / 1000); // Wolf disabled
 
   // Update needs for all smart entities
   const bonfireEntity = entities.find(e => e.type === 'bonfire');
@@ -876,9 +876,10 @@ function gameLoop(timestamp) {
       ai.triggerDecision(characterEntity, entities, needContext);
     }
   }
-  if (wolfEntity && wolfEntity.food !== undefined) {
-    updateNeeds(wolfEntity, deltaTime, bonfireEntity);
-  }
+  // Wolf disabled
+  // if (wolfEntity && wolfEntity.food !== undefined) {
+  //   updateNeeds(wolfEntity, deltaTime, bonfireEntity);
+  // }
 
   // Update bonfire fuel
   if (bonfireEntity && bonfireEntity.fuel !== undefined) {

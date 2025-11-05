@@ -232,31 +232,19 @@ function buildPrompt(entity, entities, context = {}) {
   // Build context message (why are we asking for a decision?)
   let contextMessage = '';
   if (context.actionCompleted && context.lastAction) {
-    const result = context.lastResult?.success ? 'succeeded' : 'failed';
-    contextMessage = `\nLast action: ${context.lastAction} ${result}`;
+    const result = context.lastResult?.success ? '✓' : '✗';
+    contextMessage = `\n${result} ${context.lastAction}`;
     if (context.lastAction === 'searchFor' && context.lastResult?.success) {
       contextMessage += ` (found ${context.lastResult.foundType || 'target'})`;
     }
   } else if (context.newEntityVisible) {
     const newEntity = context.newEntityVisible;
-    contextMessage = `\nNew: ${newEntity.type} now visible`;
-
-    // Add relevance to current goal if applicable
-    if (state.currentIntent) {
-      if (newEntity.type === 'tree' && state.currentIntent.includes('food')) {
-        contextMessage += ` (can provide apples)`;
-      } else if (newEntity.type === 'grass' && state.currentIntent.includes('food')) {
-        contextMessage += ` (can provide berries)`;
-      } else if (newEntity.type === 'tree' && state.currentIntent.includes('fuel')) {
-        contextMessage += ` (can provide sticks)`;
-      } else if (newEntity.type === 'bonfire' && (state.currentIntent.includes('warm') || state.currentIntent.includes('sleep') || state.currentIntent.includes('rest'))) {
-        contextMessage += ` (relevant to your goal)`;
-      } else if (newEntity.type === 'wolf') {
-        contextMessage += ` ⚠️ THREAT`;
-      }
+    contextMessage = `\nNew: ${newEntity.type}`;
+    if (newEntity.type === 'wolf') {
+      contextMessage += ` ⚠️`;
     }
   } else if (context.needBecameCritical) {
-    contextMessage = `\nAlert: critical need detected`;
+    contextMessage = `\n⚠️ Critical: ${context.needBecameCritical}`;
   }
 
   // Add recent action history (last 5 actions for pattern recognition)
@@ -264,18 +252,17 @@ function buildPrompt(entity, entities, context = {}) {
   if (state.actionHistory.length > 0) {
     const recentActions = state.actionHistory.slice(-5).map(action => {
       const status = action.result.success ? '✓' : '✗';
-      let desc = `${status} ${action.name}`;
+      let desc = `${status}${action.name}`;
 
       // Add relevant details based on action type
       if (action.name === 'moveTo' && action.args.target) {
         desc += ` ${action.args.target}`;
       } else if (action.name === 'collect' && action.args.itemType) {
         desc += ` ${action.args.itemType}`;
-        if (action.args.target) desc += ` from ${action.args.target}`;
       } else if (action.name === 'searchFor' && action.args.itemType) {
         desc += ` ${action.args.itemType}`;
         if (action.result.success) {
-          desc += ` (found ${action.result.foundType || action.args.itemType})`;
+          desc += ` (${action.result.foundType || action.args.itemType})`;
         }
       } else if (action.name === 'eat' && action.args.foodType) {
         desc += ` ${action.args.foodType}`;
@@ -288,20 +275,20 @@ function buildPrompt(entity, entities, context = {}) {
 
       return desc;
     });
-    historyMessage = `\nRecent actions: ${recentActions.join(', ')}`;
+    historyMessage = `\nHistory: ${recentActions.join(', ')}`;
   }
 
   // Add current goal/activity (give LLM context about their own state)
   let activityMessage = '';
   if (state.currentIntent) {
-    activityMessage = `\nYour current goal: ${state.currentIntent}`;
+    activityMessage = `\nGoal: ${state.currentIntent}`;
 
     // Add what they're actively doing right now
     if (entity.currentMovementAction === 'searching' && entity.movementActionData.searchTarget) {
-      activityMessage += ` (searching for ${entity.movementActionData.searchTarget})`;
+      activityMessage += ` (searching ${entity.movementActionData.searchTarget})`;
     } else if (entity.currentMovementAction === 'moving_to' && entity.movementActionData.targetEntity) {
       const targetType = entity.movementActionData.targetEntity.type;
-      activityMessage += ` (moving to ${targetType})`;
+      activityMessage += ` (→${targetType})`;
     } else if (entity.currentMovementAction === 'wandering') {
       activityMessage += ` (wandering)`;
     }
@@ -346,29 +333,25 @@ function buildPrompt(entity, entities, context = {}) {
   const memoryLine = translator.translateMemory(visible, entity.memory.discovered, entity, needs);
 
   // Build minimal prompt (words only, no numbers)
-  let prompt = `You are Lira — practical and cautious but kind.
-Assume commonsense. Treat the need words as literal state tags (not storytelling).
+  let prompt = `You are Lira. Practical, cautious, kind.
 ${contextMessage}${historyMessage}${activityMessage}
 
-Situation: ${timeDescription}. Goal: survive and thrive.
+${timeDescription}. Survive and thrive.
 Needs: ${needsLine}
 Inventory: ${inventoryLine}
-
-Current visibility:
-${nearbyLine}`;
+Visible: ${nearbyLine}`;
 
   if (memoryLine) {
-    prompt += `\n\nRemembered locations (not currently visible):
-${memoryLine}`;
+    prompt += `\nRemembered: ${memoryLine}`;
   }
 
   // Filter available actions based on current state
   const availableActions = [];
 
   // Always available
-  availableActions.push('- searchFor: {"name":"searchFor","args":{"itemType":"apple"|"berry"|"stick"|"bonfire"}}\n  → Wander to find item type');
-  availableActions.push('- moveTo: {"name":"moveTo","args":{"target":"<type>"}}\n  → Walk to entity (visible OR remembered)');
-  availableActions.push('- wander: {"name":"wander","args":{}}\n  → Explore randomly');
+  availableActions.push('searchFor: {"name":"searchFor","args":{"itemType":"apple"|"berry"|"stick"|"bonfire"}}');
+  availableActions.push('moveTo: {"name":"moveTo","args":{"target":"<type>"}}');
+  availableActions.push('wander: {"name":"wander","args":{}}');
 
   // collect - only if inventory not full and collectibles visible
   if (!entity.inventory.isFull()) {
@@ -376,7 +359,7 @@ ${memoryLine}`;
       ['tree', 'grass', 'stick', 'apple', 'berry'].includes(e.type)
     );
     if (hasCollectibles) {
-      availableActions.push('- collect: {"name":"collect","args":{"target":"<type>","itemType":"<type>"}}\n  → Get item (tree→apple, grass→berry, stick→stick)');
+      availableActions.push('collect: {"name":"collect","args":{"target":"<type>","itemType":"<type>"}}');
     }
   }
 
@@ -384,7 +367,7 @@ ${memoryLine}`;
   if (entity.inventory.hasItem('stick')) {
     const bonfireVisible = visible.some(e => e.type === 'bonfire');
     if (bonfireVisible) {
-      availableActions.push('- addFuel: {"name":"addFuel","args":{}}\n  → Add stick to bonfire');
+      availableActions.push('addFuel: {"name":"addFuel","args":{}}');
     }
   }
 
@@ -395,31 +378,21 @@ ${memoryLine}`;
     const foodTypes = [];
     if (hasApple) foodTypes.push('"apple"');
     if (hasBerry) foodTypes.push('"berry"');
-    availableActions.push(`- eat: {"name":"eat","args":{"foodType":${foodTypes.join('|')}}}\n  → Consume food from inventory`);
+    availableActions.push(`eat: {"name":"eat","args":{"foodType":${foodTypes.join('|')}}}`);
   }
 
   // sleep - only if tired
   if (entity.energy < 80) {
-    availableActions.push('- sleep: {"name":"sleep","args":{}}\n  → Rest to restore energy');
+    availableActions.push('sleep: {"name":"sleep","args":{}}');
   }
 
   prompt += `
-Constraints: carry up to two items max.
 
-Available actions right now:
+Actions:
 ${availableActions.join('\n')}
 
-Respond only with strict JSON:
-{
-  "intent": "<short goal>",
-  "plan": ["<step1>", "<step2>", "<step3>"],
-  "next_action": {"name":"...","args":{...}},
-  "bubble": {"text":"<≤8 words>","emoji":"<one>"}
-}
-
-Examples:
-- 2 sticks visible, empty inventory: {"intent":"fuel fire","plan":["collect stick","collect stick","add to bonfire"],"next_action":{"name":"collect","args":{"target":"stick","itemType":"stick"}},"bubble":{"text":"gathering sticks","emoji":"🪵"}}
-- Stick in inventory, bonfire visible: {"intent":"add fuel","plan":["add fuel"],"next_action":{"name":"addFuel","args":{}},"bubble":{"text":"fueling fire","emoji":"🔥"}}`;
+JSON only:
+{"intent":"<goal>","plan":["<step>",...],"next_action":{"name":"...","args":{...}},"bubble":{"text":"<≤8 words>","emoji":"<one>"}}`;
 
   return prompt;
 }
