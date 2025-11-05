@@ -559,8 +559,8 @@
       height: 50px;
       border-radius: 50%;
       background: #1a1d23;
-      border: 2px solid #333;
-      color: #888;
+      border: 2px solid #555;
+      color: #ccc;
       font-size: 24px;
       cursor: pointer;
       display: flex;
@@ -570,15 +570,11 @@
       transition: all 0.2s;
     }
 
-    #manual-mode-button.enabled {
+    #manual-mode-button.decision-needed {
+      animation: pulse 1.5s infinite;
       background: #f39c12;
       border-color: #e67e22;
       color: white;
-      box-shadow: 0 0 15px rgba(243, 156, 18, 0.5);
-    }
-
-    #manual-mode-button.decision-needed {
-      animation: pulse 1.5s infinite;
     }
 
     #manual-mode-button:hover {
