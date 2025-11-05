@@ -261,14 +261,15 @@ Nearby: ${nearbyLine}`;
   prompt += `
 Constraints: interact only at hand; carry up to two items.
 
-Allowed actions (exact parameter names and prerequisites):
+Actions (use entity TYPES, system picks nearest):
 - searchFor: {"name":"searchFor","args":{"itemType":"apple"|"berry"|"stick"|"bonfire"}}
-  → Wanders to find specified item type
-- moveTo: {"name":"moveTo","args":{"target":"<ID>"}}
-  → Walks to target entity (use ID without @ symbol)
-- collect: {"name":"collect","args":{"target":"<ID>","itemType":"apple"|"berry"|"stick"}}
-  → Picks up item from target (requires: target "at hand", inventory not full)
-  → Use ID from nearby list, e.g., "sti3" not "@sti3"
+  → Wanders to find item type
+- moveTo: {"name":"moveTo","args":{"target":"<type>"}}
+  → Walks to nearest entity of type (e.g., "bonfire", "tree", "stick")
+- collect: {"name":"collect","args":{"target":"<type>","itemType":"<type>"}}
+  → Picks up item from nearest source (requires: source at hand, inventory not full)
+  → target can be "tree" (for apples), "grass" (for berries), "stick" (for sticks)
+  → System automatically picks the nearest available source
 - addFuel: {"name":"addFuel","args":{}}
   → Adds stick to bonfire (requires: stick in inventory, bonfire at hand)
 - eat: {"name":"eat","args":{"foodType":"apple"|"berry"}}
@@ -286,9 +287,9 @@ Respond only with strict JSON:
   "bubble": {"text":"<≤8 words>","emoji":"<one>"}
 }
 
-IMPORTANT: Use entity IDs from "Nearby" list WITHOUT the @ symbol.
-Example - bonfire @bon1 is nearby, collect stick @sti3:
-{"intent":"get fuel","plan":["collect stick","go to bonfire","add fuel"],"next_action":{"name":"collect","args":{"target":"sti3","itemType":"stick"}},"bubble":{"text":"getting stick","emoji":"🪵"}}`;
+Examples:
+- Collect stick: {"intent":"get fuel","plan":["collect stick"],"next_action":{"name":"collect","args":{"target":"stick","itemType":"stick"}},"bubble":{"text":"getting stick","emoji":"🪵"}}
+- Go to bonfire: {"intent":"warm up","plan":["go to bonfire"],"next_action":{"name":"moveTo","args":{"target":"bonfire"}},"bubble":{"text":"heading to fire","emoji":"🔥"}}`;
 
   return prompt;
 }
@@ -454,25 +455,32 @@ function resolveTarget(targetSpec, entity, entities) {
     return targetSpec;
   }
 
-  // Remove @ symbol if present (e.g., "@bon1" -> "bon1")
-  const targetId = typeof targetSpec === 'string' ? targetSpec.replace(/^@/, '') : targetSpec;
+  // Remove @ symbol if present (e.g., "@bonfire" -> "bonfire")
+  const targetType = typeof targetSpec === 'string' ? targetSpec.replace(/^@/, '') : targetSpec;
 
-  // Try to find visible entity by ID
+  // Get visible entities
   const visible = entity.getVisibleEntities();
-  let target = visible.find(e => e.id === targetId);
 
-  // If not found, also try by type for backwards compatibility
-  if (!target) {
-    target = visible.find(e => e.type === targetId);
+  // Find best target by type (prefer "at hand" > "nearby" > "far")
+  const candidates = visible.filter(e => e.type === targetType);
+
+  if (candidates.length > 0) {
+    // Sort by distance (closest first)
+    candidates.sort((a, b) => {
+      const distA = distance(entity.x, entity.y, a.x, a.y);
+      const distB = distance(entity.x, entity.y, b.x, b.y);
+      return distA - distB;
+    });
+    return candidates[0]; // Return closest
   }
 
-  // If not visible but in memory, use memory (search by type for memory)
-  if (!target && entity.memory.discovered.has(targetId)) {
-    const remembered = entity.memory.discovered.get(targetId);
-    return { x: remembered.x, y: remembered.y, type: targetId };
+  // If not visible but in memory, use memory
+  if (entity.memory.discovered.has(targetType)) {
+    const remembered = entity.memory.discovered.get(targetType);
+    return { x: remembered.x, y: remembered.y, type: targetType };
   }
 
-  return target;
+  return null;
 }
 
 async function executeAction(decision, entity, entities) {
