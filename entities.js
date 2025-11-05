@@ -60,12 +60,34 @@ export class Inventory {
 }
 
 // ============================================================
+// ENTITY ID GENERATION
+// ============================================================
+
+// Global entity ID counter for each type
+const entityIdCounters = {};
+
+function generateEntityId(type) {
+  // Get type prefix (first 3 letters)
+  const prefix = type.substring(0, 3);
+
+  // Initialize counter for this type if needed
+  if (!entityIdCounters[type]) {
+    entityIdCounters[type] = 0;
+  }
+
+  // Increment and return ID
+  entityIdCounters[type]++;
+  return `${prefix}${entityIdCounters[type]}`;
+}
+
+// ============================================================
 // ENTITY CLASSES
 // ============================================================
 
 // Base Entity class - all game objects
 export class Entity {
   constructor(type, x, y, scale = 1) {
+    this.id = generateEntityId(type);
     this.type = type;
     this.x = x;
     this.y = y;
