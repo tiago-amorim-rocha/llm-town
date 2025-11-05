@@ -99,14 +99,12 @@ async function loadSVG(name, path) {
 }
 
 async function loadSVGComponents() {
-  console.log('📦 Loading SVG assets...');
   const loadPromises = Object.entries(SVG_ASSETS).map(async ([name, path]) => {
     SVG_COMPONENTS[name] = await loadSVG(name, path);
-    console.log(`  ✓ Loaded ${name}.svg`);
   });
 
   await Promise.all(loadPromises);
-  console.log('✅ All SVG assets loaded');
+  console.log(`✅ SVG assets loaded (${Object.keys(SVG_ASSETS).length} files)`);
 }
 
 // Get character SVG with collection animation
@@ -154,8 +152,6 @@ injectActions(SmartEntity, getEntities);
 function initScene() {
   const width = window.innerWidth;
   const height = window.innerHeight;
-
-  console.log(`📺 Screen size: ${width}px × ${height}px`);
 
   // Clear existing entities and movement state
   entities = [];
@@ -920,15 +916,12 @@ async function init() {
 
   await loadSVGComponents();
 
-  console.log('✨ Initializing survival scene...');
-
   initReloadButton();
   initRespawnButton();
   initActionMenu();
   initAIToggleButton();
   showReloadButton(); // TEMPORARILY ALWAYS SHOW FOR TESTING
   setInterval(checkForNewVersion, VERSION_CHECK_INTERVAL);
-  console.log(`🔍 Version checking enabled (every ${VERSION_CHECK_INTERVAL / 1000}s)`);
 
   canvas = document.createElement('div');
   canvas.id = 'game-canvas';
@@ -936,21 +929,15 @@ async function init() {
   document.body.appendChild(canvas);
 
   initScene();
+  console.log(`✅ Scene initialized (${entities.length} entities)`);
 
   // Start game loop using requestAnimationFrame for smooth 60fps
   requestAnimationFrame(gameLoop);
-
-  console.log('🎮 Game loop started (using requestAnimationFrame)');
-  console.log(`🌞 Day/night cycle: ${config.DAY_NIGHT_CYCLE_DURATION / 1000}s total`);
-  console.log(`   Day: ${config.DAY_DURATION / 1000}s | Dusk: ${config.DUSK_DURATION / 1000}s | Night: ${config.NIGHT_DURATION / 1000}s | Dawn: ${config.DAWN_DURATION / 1000}s`);
-  console.log(`👁️ Base visibility: ${config.DAY_VISIBILITY_RADIUS}px (day) → ${config.NIGHT_VISIBILITY_RADIUS}px (night)`);
 
   window.addEventListener('resize', () => {
     console.log('🔄 Window resized, regenerating scene...');
     initScene();
   });
-
-  console.log('✅ Scene initialized with', entities.length, 'entities');
 }
 
 if (document.readyState === 'loading') {
