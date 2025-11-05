@@ -261,13 +261,14 @@ Nearby: ${nearbyLine}`;
   prompt += `
 Constraints: interact only at hand; carry up to two items.
 
-Allowed actions (with exact parameter names and prerequisites):
+Allowed actions (exact parameter names and prerequisites):
 - searchFor: {"name":"searchFor","args":{"itemType":"apple"|"berry"|"stick"|"bonfire"}}
   → Wanders to find specified item type
-- moveTo: {"name":"moveTo","args":{"target":"entityId"}}
-  → Walks to target entity
-- collect: {"name":"collect","args":{"target":"entityId","itemType":"apple"|"berry"|"stick"}}
+- moveTo: {"name":"moveTo","args":{"target":"<ID>"}}
+  → Walks to target entity (use ID without @ symbol)
+- collect: {"name":"collect","args":{"target":"<ID>","itemType":"apple"|"berry"|"stick"}}
   → Picks up item from target (requires: target "at hand", inventory not full)
+  → Use ID from nearby list, e.g., "sti3" not "@sti3"
 - addFuel: {"name":"addFuel","args":{}}
   → Adds stick to bonfire (requires: stick in inventory, bonfire at hand)
 - eat: {"name":"eat","args":{"foodType":"apple"|"berry"}}
@@ -285,8 +286,9 @@ Respond only with strict JSON:
   "bubble": {"text":"<≤8 words>","emoji":"<one>"}
 }
 
-Example - To add fuel, must collect stick first:
-{"intent":"fuel bonfire","plan":["collect stick","add to fire"],"next_action":{"name":"collect","args":{"target":"sti1","itemType":"stick"}},"bubble":{"text":"getting sticks","emoji":"🪵"}}`;
+IMPORTANT: Use entity IDs from "Nearby" list WITHOUT the @ symbol.
+Example - bonfire @bon1 is nearby, collect stick @sti3:
+{"intent":"get fuel","plan":["collect stick","go to bonfire","add fuel"],"next_action":{"name":"collect","args":{"target":"sti3","itemType":"stick"}},"bubble":{"text":"getting stick","emoji":"🪵"}}`;
 
   return prompt;
 }
@@ -452,15 +454,22 @@ function resolveTarget(targetSpec, entity, entities) {
     return targetSpec;
   }
 
-  // If it's a string, try to find visible entity
-  const targetType = targetSpec;
-  const visible = entity.getVisibleEntities();
-  let target = visible.find(e => e.type === targetType);
+  // Remove @ symbol if present (e.g., "@bon1" -> "bon1")
+  const targetId = typeof targetSpec === 'string' ? targetSpec.replace(/^@/, '') : targetSpec;
 
-  // If not visible but useMemory is requested, use memory
-  if (!target && entity.memory.discovered.has(targetType)) {
-    const remembered = entity.memory.discovered.get(targetType);
-    return { x: remembered.x, y: remembered.y, type: targetType };
+  // Try to find visible entity by ID
+  const visible = entity.getVisibleEntities();
+  let target = visible.find(e => e.id === targetId);
+
+  // If not found, also try by type for backwards compatibility
+  if (!target) {
+    target = visible.find(e => e.type === targetId);
+  }
+
+  // If not visible but in memory, use memory (search by type for memory)
+  if (!target && entity.memory.discovered.has(targetId)) {
+    const remembered = entity.memory.discovered.get(targetId);
+    return { x: remembered.x, y: remembered.y, type: targetId };
   }
 
   return target;
