@@ -156,7 +156,16 @@ export function translateEntity(entity, characterEntity) {
     const fuelWord = translateBonfireFuel(entity.fuel);
     description = `bonfire (${distanceWord}, fuel: ${fuelWord})`;
     priority = 10; // Bonfire is always important
-  } else if (entity.type === 'apple' || entity.type === 'berry' || entity.type === 'stick') {
+  } else if (entity.type === 'stick') {
+    // Stick entities are containers (like trees/grass) that can be empty
+    const hasStick = entity.inventory && entity.inventory.hasItem('stick');
+    if (hasStick) {
+      description = `stick (${distanceWord})`;
+    } else {
+      description = `stick (${distanceWord}, empty)`;
+      priority = -50; // Deprioritize empty stick piles
+    }
+  } else if (entity.type === 'apple' || entity.type === 'berry') {
     description = `${entity.type} (${distanceWord})`;
   } else if (entity.type === 'wolf') {
     description = `WOLF (${distanceWord}) ⚠️`;
