@@ -266,10 +266,23 @@ function buildPrompt(entity, entities, context = {}) {
       const status = action.result.success ? '✓' : '✗';
       let desc = `${status} ${action.name}`;
 
-      // Add relevant details
-      if (action.name === 'searchFor' && action.result.success) {
-        desc += ` (found ${action.result.foundType || 'target'})`;
-      } else if (!action.result.success && action.result.reason) {
+      // Add relevant details based on action type
+      if (action.name === 'moveTo' && action.args.target) {
+        desc += ` ${action.args.target}`;
+      } else if (action.name === 'collect' && action.args.itemType) {
+        desc += ` ${action.args.itemType}`;
+        if (action.args.target) desc += ` from ${action.args.target}`;
+      } else if (action.name === 'searchFor' && action.args.itemType) {
+        desc += ` ${action.args.itemType}`;
+        if (action.result.success) {
+          desc += ` (found ${action.result.foundType || action.args.itemType})`;
+        }
+      } else if (action.name === 'eat' && action.args.foodType) {
+        desc += ` ${action.args.foodType}`;
+      }
+
+      // Add failure reason if applicable
+      if (!action.result.success && action.result.reason) {
         desc += ` (${action.result.reason})`;
       }
 
