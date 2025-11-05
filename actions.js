@@ -15,6 +15,17 @@ const COLLECTION_RANGE = config.COLLECTION_RANGE;
 const APPLE_COLLECTION_TIME = config.APPLE_COLLECTION_TIME;
 const BERRY_COLLECTION_TIME = config.BERRY_COLLECTION_TIME;
 
+// Entity categories for search context
+const ENTITY_CATEGORIES = {
+  apple: 'food',
+  berry: 'food',
+  stick: 'fuel',
+  bonfire: 'warmth',
+  wolf: 'threat',
+  tree: 'source',
+  grass: 'source'
+};
+
 // Collection state (for animation)
 let isCollecting = false;
 let collectionAnimationProgress = 0; // 0 to 1
@@ -210,16 +221,37 @@ function executeSearchFor(smartEntity, itemType, callback) {
   // Subscribe to visibility events
   smartEntity.on('entityVisible', onEntityVisible);
 
-  // Start wandering to search
-  smartEntity.wander(searchDuration, (result) => {
-    if (searchComplete) return; // Already found target
+  // Set searching state (different from aimless wandering)
+  smartEntity.currentMovementAction = 'searching';
+  smartEntity.movementActionData = {
+    searchTarget: itemType,
+    targetCategory: ENTITY_CATEGORIES[itemType] || ENTITY_CATEGORIES[targetType],
+    startTime: Date.now(),
+    duration: searchDuration
+  };
 
-    // Wander duration complete without finding target
-    searchComplete = true;
-    smartEntity.off('entityVisible', onEntityVisible);
-    console.log(`⏰ ${smartEntity.type} search timeout: ${itemType} not found`);
-    callback({ success: false, reason: 'timeout' });
-  });
+  // Start wandering movement to search
+  // Note: We set state to 'searching' above, but use wander's movement logic
+  const wanderStartTime = Date.now();
+
+  const checkCompletion = () => {
+    if (searchComplete) return;
+
+    const elapsed = Date.now() - wanderStartTime;
+    if (elapsed >= searchDuration) {
+      // Search timeout
+      searchComplete = true;
+      smartEntity.off('entityVisible', onEntityVisible);
+      smartEntity.currentMovementAction = null;
+      smartEntity.movementActionData = {};
+      console.log(`⏰ ${smartEntity.type} search timeout: ${itemType} not found`);
+      callback({ success: false, reason: 'timeout' });
+    } else {
+      requestAnimationFrame(checkCompletion);
+    }
+  };
+
+  requestAnimationFrame(checkCompletion);
 }
 
 function executeMoveTo(smartEntity, target, arrivalDistance, callback) {
