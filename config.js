@@ -79,18 +79,18 @@ export const SEARCH_MODE_DURATION = time.inGameMinutesToRealMs(SEARCH_MODE_MINUT
 // TREE GENERATION SETTINGS
 // ============================================================
 
-export const TREE_COUNT_MIN = 5;
-export const TREE_COUNT_MAX = 7;
+export const TREE_COUNT_MIN = 3;  // Reduced by 30% from 5
+export const TREE_COUNT_MAX = 5;  // Reduced by 30% from 7
 export const TREE_RADIUS = 40;              // Approximate tree radius at scale 1.0 (for collision/margins)
 export const MAX_PLACEMENT_ATTEMPTS = 50;   // Max attempts to place each tree
-export const BONFIRE_EXCLUSION_RADIUS = 75; // Trees won't spawn within this radius of bonfire
+export const BONFIRE_EXCLUSION_RADIUS = 150; // Trees won't spawn within this radius of bonfire (doubled for more clear space)
 
 // ============================================================
 // GRASS GENERATION SETTINGS
 // ============================================================
 
-export const GRASS_COUNT_MIN = 8;
-export const GRASS_COUNT_MAX = 15;
+export const GRASS_COUNT_MIN = 6;   // Reduced by 30% from 8
+export const GRASS_COUNT_MAX = 10;  // Reduced by 30% from 15
 export const GRASS_RADIUS = 25;             // Approximate grass radius at scale 1.0 (for margins)
 
 // ============================================================
