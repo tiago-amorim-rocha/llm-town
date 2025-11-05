@@ -182,6 +182,15 @@ function executeSearchFor(smartEntity, itemType, callback) {
   const alreadyVisible = Array.from(smartEntity.visibleEntities).find(isTargetMatch);
   if (alreadyVisible) {
     console.log(`✅ ${smartEntity.type} found ${itemType} immediately at ${alreadyVisible.type}`);
+
+    // Auto-collect if it's a collectible item and inventory has space
+    const itemConfig = entityRegistry.getEntityConfig(itemType);
+    if (itemConfig && itemConfig.collectible && !smartEntity.inventory.isFull()) {
+      console.log(`🎯 Auto-collecting ${itemType} after successful search`);
+      executeCollect(smartEntity, alreadyVisible, itemType, callback);
+      return;
+    }
+
     callback({ success: true, target: alreadyVisible, foundType: itemType });
     return;
   }
@@ -196,6 +205,15 @@ function executeSearchFor(smartEntity, itemType, callback) {
       smartEntity.off('entityVisible', onEntityVisible);
       smartEntity.stopCurrentAction(); // Stop wandering
       console.log(`✅ ${smartEntity.type} found ${itemType} at ${entity.type} (${entity.x.toFixed(0)}, ${entity.y.toFixed(0)})`);
+
+      // Auto-collect if it's a collectible item and inventory has space
+      const itemConfig = entityRegistry.getEntityConfig(itemType);
+      if (itemConfig && itemConfig.collectible && !smartEntity.inventory.isFull()) {
+        console.log(`🎯 Auto-collecting ${itemType} after successful search`);
+        executeCollect(smartEntity, entity, itemType, callback);
+        return;
+      }
+
       callback({ success: true, target: entity, foundType: itemType });
     }
   };
