@@ -13,6 +13,7 @@ import { distance } from './utils.js';
 import { getInGameTime, formatInGameTime, getCycleState } from './cycle.js';
 import * as translator from './translator.js';
 import * as entityRegistry from './entityRegistry.js';
+import * as manualLLM from './manualLLM.js';
 
 // ============================================================
 // CONFIGURATION
@@ -788,22 +789,33 @@ export async function triggerDecision(entity, entities, context = {}) {
     console.log(prompt);
     console.log('='.repeat(80) + '\n');
 
-    // Call LLM
-    const responseText = await callGemini(prompt);
+    let decision;
 
-    console.log('\n' + '='.repeat(80));
-    console.log('🤖 LLM RESPONSE:');
-    console.log('='.repeat(80));
-    console.log(responseText);
-    console.log('='.repeat(80) + '\n');
+    // Check for manual mode
+    if (manualLLM.isManualMode()) {
+      // Manual mode: Request decision from user
+      console.log('🧠 Manual mode: Waiting for user decision...');
+      decision = await manualLLM.requestManualDecision(entity, entities, context, prompt);
+      console.log('🧠 Manual decision received:', decision);
+    } else {
+      // Automatic mode: Call LLM API
+      const responseText = await callGemini(prompt);
 
-    // Parse response
-    const parseResult = parseResponse(responseText);
-    if (!parseResult.success) {
-      throw new Error(`Failed to parse LLM response: ${parseResult.error}`);
+      console.log('\n' + '='.repeat(80));
+      console.log('🤖 LLM RESPONSE:');
+      console.log('='.repeat(80));
+      console.log(responseText);
+      console.log('='.repeat(80) + '\n');
+
+      // Parse response
+      const parseResult = parseResponse(responseText);
+      if (!parseResult.success) {
+        throw new Error(`Failed to parse LLM response: ${parseResult.error}`);
+      }
+
+      decision = parseResult.data;
     }
 
-    const decision = parseResult.data;
     state.lastDecision = decision;
 
     // Execute action

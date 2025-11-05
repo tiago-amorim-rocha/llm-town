@@ -11,6 +11,7 @@ import { render } from './rendering.js';
 import * as entityRegistry from './entityRegistry.js';
 import { updateNeeds } from './needs.js';
 import * as ai from './ai.js';
+import * as manualLLM from './manualLLM.js';
 
 // ============================================================
 // AUTO-RELOAD SYSTEM
@@ -916,6 +917,7 @@ async function init() {
   initRespawnButton();
   initActionMenu();
   initAIToggleButton();
+  manualLLM.initManualLLMMode();
   setInterval(checkForNewVersion, VERSION_CHECK_INTERVAL);
 
   canvas = document.createElement('div');
