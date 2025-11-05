@@ -118,7 +118,7 @@ export function translateEntity(entity, characterEntity) {
   let description = '';
   let priority = 0; // Higher = more important for current needs
 
-  // Format based on entity type
+  // Format based on entity type (no IDs - LLM uses types)
   if (entity.type === 'tree') {
     const items = [];
     if (entity.apples > 0) items.push(`${entity.apples} apples`);
@@ -126,21 +126,21 @@ export function translateEntity(entity, characterEntity) {
     if (entity.sticks > 0) items.push(`${entity.sticks} sticks`);
 
     if (items.length > 0) {
-      description = `tree @${entity.id} (${distanceWord}, has: ${items.join(', ')})`;
+      description = `tree (${distanceWord}, has: ${items.join(', ')})`;
     } else {
-      description = `tree @${entity.id} (${distanceWord}, empty)`;
+      description = `tree (${distanceWord}, empty)`;
     }
   } else if (entity.type === 'bonfire') {
     const fuelWord = translateBonfireFuel(entity.fuel);
-    description = `bonfire @${entity.id} (${distanceWord}, fuel: ${fuelWord})`;
+    description = `bonfire (${distanceWord}, fuel: ${fuelWord})`;
     priority = 10; // Bonfire is always important
   } else if (entity.type === 'apple' || entity.type === 'berry' || entity.type === 'stick') {
-    description = `${entity.type} @${entity.id} (${distanceWord})`;
+    description = `${entity.type} (${distanceWord})`;
   } else if (entity.type === 'wolf') {
-    description = `WOLF @${entity.id} (${distanceWord}) ⚠️`;
+    description = `WOLF (${distanceWord}) ⚠️`;
     priority = 100; // Threats are highest priority
   } else {
-    description = `${entity.type} @${entity.id} (${distanceWord})`;
+    description = `${entity.type} (${distanceWord})`;
   }
 
   return { description, distance, distanceWord, priority };
@@ -175,13 +175,11 @@ export function translateNearbyEntities(visibleEntities, characterEntity, needs)
     lowestValue = needs.health;
   }
 
-  // Translate all entities
-  const translated = visibleEntities.map(e => translateEntity(e, characterEntity));
+  // Translate all entities and boost priority based on dominant need
+  const translated = visibleEntities.map((entity, index) => {
+    const t = translateEntity(entity, characterEntity);
 
-  // Boost priority based on dominant need
-  translated.forEach(t => {
-    const entity = visibleEntities.find(e => t.description.includes(`@${e.id}`));
-
+    // Boost priority based on dominant need
     if (dominantNeed === 'food' && (entity.type === 'apple' || entity.type === 'berry' || entity.type === 'tree')) {
       t.priority += 50;
     }
@@ -194,6 +192,8 @@ export function translateNearbyEntities(visibleEntities, characterEntity, needs)
     if (entity.type === 'stick' || (entity.type === 'tree' && entity.sticks > 0)) {
       t.priority += 20; // Sticks are always useful for bonfire
     }
+
+    return t;
   });
 
   // Sort by priority DESC, then distance ASC
@@ -221,8 +221,8 @@ export function translateMemory(visibleEntities, rememberedLocations) {
   // Check if bonfire is visible
   const bonfireVisible = visibleEntities.some(e => e.type === 'bonfire');
 
-  if (!bonfireVisible && rememberedLocations.has('bon1')) {
-    const loc = rememberedLocations.get('bon1');
+  if (!bonfireVisible && rememberedLocations.has('bonfire')) {
+    const loc = rememberedLocations.get('bonfire');
     // Simple direction calculation (N, S, E, W, NE, NW, SE, SW)
     const dir = getCardinalDirection(loc.x, loc.y);
     return `remembers bonfire ${dir}`;
