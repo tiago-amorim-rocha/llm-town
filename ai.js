@@ -463,16 +463,36 @@ async function callGemini(prompt) {
   });
 
   if (!response.ok) {
-    throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
+    let errorDetails = '';
+    try {
+      const errorData = await response.json();
+      errorDetails = JSON.stringify(errorData);
+    } catch (e) {
+      errorDetails = await response.text();
+    }
+    throw new Error(`Gemini API error: ${response.status} ${response.statusText}. Details: ${errorDetails}`);
   }
 
   const data = await response.json();
 
   if (!data.candidates || data.candidates.length === 0) {
-    throw new Error('No response from Gemini');
+    const blockReason = data.promptFeedback?.blockReason;
+    if (blockReason) {
+      throw new Error(`Gemini blocked response. Reason: ${blockReason}`);
+    }
+    throw new Error('No response from Gemini. Data: ' + JSON.stringify(data));
   }
 
-  const text = data.candidates[0].content.parts[0].text;
+  const candidate = data.candidates[0];
+  if (!candidate.content || !candidate.content.parts || candidate.content.parts.length === 0) {
+    throw new Error('Invalid response structure from Gemini. Data: ' + JSON.stringify(data));
+  }
+
+  const text = candidate.content.parts[0].text;
+  if (!text) {
+    throw new Error('Empty text response from Gemini. Data: ' + JSON.stringify(data));
+  }
+
   return text;
 }
 
@@ -774,9 +794,13 @@ export async function triggerDecision(entity, entities, context = {}) {
     // Clear pending flag on error
     state.isPending = false;
 
-    console.error('❌ AI Decision Error:', error);
+    console.error('❌ AI Decision Error:', error.message || error);
     console.error('Entity:', entity.id, 'at', { x: entity.x, y: entity.y });
-    console.error('Stack trace:', error.stack);
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack
+    });
     // Don't suppress errors - let them be visible in console
     throw error;
   }
