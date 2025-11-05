@@ -126,7 +126,8 @@ export function shouldTriggerDecision(entity, context = {}) {
     return false;
   }
 
-  // Currently executing an action (collecting, sleeping)
+  // Currently executing an action (collecting, sleeping, searching)
+  // Note: searching is checked separately below for smart interrupts
   if (context.isCollecting || entity.isSleeping) {
     return false;
   }
@@ -154,16 +155,24 @@ export function shouldTriggerDecision(entity, context = {}) {
       return false;
     }
 
-    // Don't interrupt if we JUST made a decision (within last 10 seconds)
-    // Let the agent commit to their choice before being distracted
-    const timeSinceLastCall = Date.now() - state.lastCallTime;
-    if (timeSinceLastCall < 10000) {
-      // Exception: threats ALWAYS interrupt
-      if (newCategory === 'threat') {
-        return true;
+    // Threats ALWAYS interrupt
+    if (newCategory === 'threat') {
+      return true;
+    }
+
+    // If currently searching for something specific
+    if (entity.currentMovementAction === 'searching' && entity.movementActionData.searchTarget) {
+      const searchCategory = entity.movementActionData.targetCategory;
+
+      // Same category as what we're searching for - don't interrupt
+      // (e.g., searching for berry, found apple - both food, let search continue)
+      if (searchCategory === newCategory) {
+        return false;
       }
-      // Otherwise, let the recent decision play out
-      return false;
+
+      // Different category - allow interrupt
+      // (e.g., searching for berry, found wolf - different priority)
+      return true;
     }
 
     // If currently moving to a target, check if we should interrupt
@@ -175,11 +184,6 @@ export function shouldTriggerDecision(entity, context = {}) {
           currentTarget.x === context.newEntityVisible.x &&
           currentTarget.y === context.newEntityVisible.y) {
         return false;
-      }
-
-      // Threats always interrupt
-      if (newCategory === 'threat') {
-        return true;
       }
 
       // Check category of current target
@@ -195,8 +199,7 @@ export function shouldTriggerDecision(entity, context = {}) {
       return true;
     }
 
-    // If wandering/searching and not a recent decision, allow trigger
-    // (But recent decision check above prevents immediate interrupts)
+    // If aimlessly wandering (no specific goal), allow trigger for any new entity
     return true;
   }
 
