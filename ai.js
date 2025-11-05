@@ -261,19 +261,21 @@ Nearby: ${nearbyLine}`;
   prompt += `
 Constraints: interact only at hand; carry up to two items.
 
+IMPORTANT: "at hand" = can interact, "nearby"/"far" = must moveTo first!
+
 Actions (use entity TYPES, system picks nearest):
 - searchFor: {"name":"searchFor","args":{"itemType":"apple"|"berry"|"stick"|"bonfire"}}
   → Wanders to find item type
 - moveTo: {"name":"moveTo","args":{"target":"<type>"}}
   → Walks to nearest entity of type (e.g., "bonfire", "tree", "stick")
 - collect: {"name":"collect","args":{"target":"<type>","itemType":"<type>"}}
-  → Picks up item from nearest source (requires: source at hand, inventory not full)
+  → Picks up item (REQUIRES: source "at hand", inventory not full)
   → target can be "tree" (for apples), "grass" (for berries), "stick" (for sticks)
-  → System automatically picks the nearest available source
 - addFuel: {"name":"addFuel","args":{}}
-  → Adds stick to bonfire (requires: stick in inventory, bonfire at hand)
+  → Adds stick to bonfire (REQUIRES: stick in inventory AND bonfire "at hand")
+  → If bonfire is "nearby" or "far", must moveTo it first!
 - eat: {"name":"eat","args":{"foodType":"apple"|"berry"}}
-  → Consumes food from inventory (requires: food in inventory)
+  → Consumes food from inventory (REQUIRES: food in inventory)
 - sleep: {"name":"sleep","args":{}}
   → Rests to restore energy
 - wander: {"name":"wander","args":{}}
@@ -288,8 +290,8 @@ Respond only with strict JSON:
 }
 
 Examples:
-- Collect stick: {"intent":"get fuel","plan":["collect stick"],"next_action":{"name":"collect","args":{"target":"stick","itemType":"stick"}},"bubble":{"text":"getting stick","emoji":"🪵"}}
-- Go to bonfire: {"intent":"warm up","plan":["go to bonfire"],"next_action":{"name":"moveTo","args":{"target":"bonfire"}},"bubble":{"text":"heading to fire","emoji":"🔥"}}`;
+- Bonfire nearby, stick in inventory: {"intent":"add fuel","plan":["go to bonfire","add fuel"],"next_action":{"name":"moveTo","args":{"target":"bonfire"}},"bubble":{"text":"heading to fire","emoji":"🔥"}}
+- Stick at hand, need fuel: {"intent":"get fuel","plan":["collect stick"],"next_action":{"name":"collect","args":{"target":"stick","itemType":"stick"}},"bubble":{"text":"getting stick","emoji":"🪵"}}`;
 
   return prompt;
 }
