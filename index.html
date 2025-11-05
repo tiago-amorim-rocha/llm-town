@@ -550,39 +550,43 @@
       margin-right: 6px;
     }
 
-    /* Manual LLM Mode Toggle */
-    #manual-mode-toggle {
+    /* Manual LLM Mode Button */
+    #manual-mode-button {
       position: fixed;
       bottom: calc(200px + env(safe-area-inset-bottom));
       right: calc(20px + env(safe-area-inset-right));
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
       background: #1a1d23;
       border: 2px solid #333;
-      border-radius: 8px;
-      padding: 8px 12px;
-      color: #eee;
-      font-size: 12px;
+      color: #888;
+      font-size: 24px;
       cursor: pointer;
-      z-index: 1000;
       display: flex;
       align-items: center;
-      gap: 8px;
+      justify-content: center;
+      z-index: 1000;
       transition: all 0.2s;
     }
 
-    #manual-mode-toggle:hover {
-      background: #252831;
-      border-color: #555;
-    }
-
-    #manual-mode-toggle.active {
+    #manual-mode-button.enabled {
       background: #f39c12;
       border-color: #e67e22;
+      color: white;
       box-shadow: 0 0 15px rgba(243, 156, 18, 0.5);
     }
 
-    #manual-mode-checkbox {
-      margin: 0;
-      cursor: pointer;
+    #manual-mode-button.decision-needed {
+      animation: pulse 1.5s infinite;
+    }
+
+    #manual-mode-button:hover {
+      transform: scale(1.05);
+    }
+
+    #manual-mode-button:active {
+      transform: scale(0.95);
     }
 
     /* AI Button Pulse when decision needed */
@@ -804,37 +808,19 @@
   <!-- AI Toggle Button -->
   <button id="ai-toggle-button" title="Toggle AI Control">🤖</button>
 
-  <!-- Manual LLM Mode Toggle -->
-  <div id="manual-mode-toggle" title="Act as the LLM yourself">
-    <input type="checkbox" id="manual-mode-checkbox">
-    <label for="manual-mode-checkbox">Manual Mode</label>
-  </div>
+  <!-- Manual LLM Mode Button -->
+  <button id="manual-mode-button" title="Manual LLM Mode - Act as the AI">🧠</button>
 
   <!-- Manual Decision Panel -->
   <div id="manual-decision-panel">
     <div id="manual-decision-header">
-      <span>🧠 You are the LLM - Make a Decision</span>
+      <span>🧠 Make a Decision</span>
       <button id="manual-decision-close">×</button>
     </div>
     <div id="manual-decision-content">
       <div class="manual-decision-section">
         <div class="manual-decision-label">📋 Context & State:</div>
         <div id="manual-decision-prompt"></div>
-      </div>
-
-      <div class="manual-decision-section">
-        <div class="manual-decision-label">🎯 Quick Actions:</div>
-        <div class="manual-decision-buttons" id="manual-quick-actions"></div>
-      </div>
-
-      <div class="manual-decision-section">
-        <div class="manual-decision-label">💭 Intent (goal):</div>
-        <input type="text" class="manual-decision-input" id="manual-intent" placeholder="e.g., Gather food for survival">
-      </div>
-
-      <div class="manual-decision-section">
-        <div class="manual-decision-label">📝 Plan (optional steps):</div>
-        <textarea class="manual-decision-textarea" id="manual-plan" placeholder="e.g., Find food, collect it, eat when hungry"></textarea>
       </div>
 
       <div class="manual-decision-section">
@@ -845,12 +831,6 @@
       <div class="manual-decision-section" id="manual-args-section" style="display: none;">
         <div class="manual-decision-label">⚙️ Arguments:</div>
         <div id="manual-args-inputs"></div>
-      </div>
-
-      <div class="manual-decision-section">
-        <div class="manual-decision-label">💬 Speech Bubble:</div>
-        <input type="text" class="manual-decision-input" id="manual-bubble-text" placeholder="What to say (≤8 words)">
-        <input type="text" class="manual-decision-input" id="manual-bubble-emoji" placeholder="Emoji" value="💭" style="margin-top: 8px;">
       </div>
 
       <button id="manual-execute-button">Execute Decision</button>
