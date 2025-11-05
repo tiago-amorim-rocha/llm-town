@@ -267,34 +267,64 @@ function initScene() {
   // Generate grass
   const grassCount = config.GRASS_COUNT_MIN + Math.floor(Math.random() * (config.GRASS_COUNT_MAX - config.GRASS_COUNT_MIN + 1));
   for (let i = 0; i < grassCount; i++) {
-    const scale = 0.7 + Math.random() * 0.35;
-    const grassRadius = config.GRASS_RADIUS * scale;
+    let placed = false;
+    let attempts = 0;
 
-    // Random placement with dynamic edge margin based on grass size
-    const x = grassRadius + Math.random() * (width - 2 * grassRadius);
-    const y = grassRadius + Math.random() * (height - 2 * grassRadius);
+    while (!placed && attempts < maxAttempts) {
+      const scale = 0.7 + Math.random() * 0.35;
+      const grassRadius = config.GRASS_RADIUS * scale;
 
-    const grass = new DummyEntity('grass', x, y, scale, 5);
-    const berryCount = Math.floor(Math.random() * 4); // 0-3 berries, same as apples
-    for (let j = 0; j < berryCount; j++) {
-      grass.inventory.addItem(new Item('berry'));
+      // Random placement with dynamic edge margin based on grass size
+      const x = grassRadius + Math.random() * (width - 2 * grassRadius);
+      const y = grassRadius + Math.random() * (height - 2 * grassRadius);
+
+      // Check distance to bonfire - avoid exclusion zone
+      const distToBonfire = Math.sqrt((x - bonfireX) ** 2 + (y - bonfireY) ** 2);
+      if (distToBonfire <= config.BONFIRE_EXCLUSION_RADIUS) {
+        attempts++;
+        continue;
+      }
+
+      const grass = new DummyEntity('grass', x, y, scale, 5);
+      const berryCount = Math.floor(Math.random() * 4); // 0-3 berries, same as apples
+      for (let j = 0; j < berryCount; j++) {
+        grass.inventory.addItem(new Item('berry'));
+      }
+      entities.push(grass);
+      placed = true;
+
+      attempts++;
     }
-    entities.push(grass);
   }
 
   // Generate sticks (fuel for bonfire)
   const stickCount = 8 + Math.floor(Math.random() * 5); // 8-12 sticks
   for (let i = 0; i < stickCount; i++) {
-    const scale = 0.6 + Math.random() * 0.4;
-    const stickRadius = 15 * scale;
+    let placed = false;
+    let attempts = 0;
 
-    // Random placement
-    const x = stickRadius + Math.random() * (width - 2 * stickRadius);
-    const y = stickRadius + Math.random() * (height - 2 * stickRadius);
+    while (!placed && attempts < maxAttempts) {
+      const scale = 0.6 + Math.random() * 0.4;
+      const stickRadius = 15 * scale;
 
-    const stick = new DummyEntity('stick', x, y, scale, 1);
-    stick.inventory.addItem(new Item('stick'));
-    entities.push(stick);
+      // Random placement
+      const x = stickRadius + Math.random() * (width - 2 * stickRadius);
+      const y = stickRadius + Math.random() * (height - 2 * stickRadius);
+
+      // Check distance to bonfire - avoid exclusion zone
+      const distToBonfire = Math.sqrt((x - bonfireX) ** 2 + (y - bonfireY) ** 2);
+      if (distToBonfire <= config.BONFIRE_EXCLUSION_RADIUS) {
+        attempts++;
+        continue;
+      }
+
+      const stick = new DummyEntity('stick', x, y, scale, 1);
+      stick.inventory.addItem(new Item('stick'));
+      entities.push(stick);
+      placed = true;
+
+      attempts++;
+    }
   }
 
   // Sort entities by Y position for depth ordering
