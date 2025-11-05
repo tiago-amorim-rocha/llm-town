@@ -25,3 +25,19 @@ jobs:
           git checkout main
           git merge --no-ff "$BRANCH" -m "auto: promote $BRANCH into main"
           git push origin main
+
+      - name: Update version.txt
+        run: |
+          # Generate timestamp in milliseconds
+          TIMESTAMP=$(date +%s%3N)
+          echo "$TIMESTAMP" > version.txt
+
+          # Check if version.txt actually changed
+          if ! git diff --quiet version.txt; then
+            git add version.txt
+            git commit -m "auto: update version.txt to $TIMESTAMP"
+            git push origin main
+            echo "✅ Updated version.txt to $TIMESTAMP"
+          else
+            echo "ℹ️ version.txt already up to date"
+          fi
