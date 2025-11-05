@@ -168,6 +168,9 @@ function executeSearchFor(smartEntity, itemType, callback) {
     targetType = 'tree';
   } else if (itemType === 'berry') {
     targetType = 'grass';
+  } else if (itemType === 'stick') {
+    targetType = 'stick';
+    isDirectEntitySearch = true;
   } else if (itemType === 'bonfire') {
     targetType = 'bonfire';
     isDirectEntitySearch = true;
