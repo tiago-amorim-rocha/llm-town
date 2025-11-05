@@ -288,16 +288,16 @@ Needs: ${needsLine}
 Inventory: ${inventoryLine}
 
 Current visibility:
-Nearby: ${nearbyLine}`;
+${nearbyLine}`;
 
   if (memoryLine) {
     prompt += `\n\nRemembered locations (not currently visible):
-Memory: ${memoryLine}`;
+${memoryLine}`;
   }
 
   prompt += `
 
-Note: "Nearby" = things you can SEE right now. "Memory" = things you SAW before but are now out of sight.`;
+Note: Current visibility = things you SEE now. Remembered locations = things you SAW before (out of sight).`;
 
   // Filter available actions based on current state
   const availableActions = [];
