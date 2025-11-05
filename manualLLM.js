@@ -137,16 +137,35 @@ function parseActionsFromPrompt(prompt) {
       const match = line.match(/^(\w+):\s*(.+)$/);
       if (match) {
         const actionName = match[1];
-        const jsonStr = match[2];
-        try {
-          const parsed = JSON.parse(jsonStr);
-          actions.push({
-            name: actionName,
-            template: parsed
+        const templateStr = match[2];
+
+        // Extract args from template without parsing as JSON
+        // Match pattern like {"name":"searchFor","args":{...}}
+        const argsMatch = templateStr.match(/"args":\s*\{([^}]+)\}/);
+        const args = {};
+
+        if (argsMatch) {
+          // Parse individual arg entries like "itemType":"apple"|"berry"|"stick"
+          const argsContent = argsMatch[1];
+          const argPairs = argsContent.split(',');
+
+          argPairs.forEach(pair => {
+            const keyValueMatch = pair.match(/"([^"]+)"\s*:\s*(.+)/);
+            if (keyValueMatch) {
+              const key = keyValueMatch[1];
+              const value = keyValueMatch[2].trim();
+              args[key] = value; // Keep as string with pipes
+            }
           });
-        } catch (e) {
-          console.warn('Failed to parse action:', line);
         }
+
+        actions.push({
+          name: actionName,
+          template: {
+            name: actionName,
+            args: args
+          }
+        });
       }
     }
   }
