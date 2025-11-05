@@ -262,6 +262,22 @@ function buildPrompt(entity, entities, context = {}) {
     historyMessage = `\nRecent actions: ${recentActions.join(', ')}`;
   }
 
+  // Add current goal/activity (give LLM context about their own state)
+  let activityMessage = '';
+  if (state.currentIntent) {
+    activityMessage = `\nYour current goal: ${state.currentIntent}`;
+
+    // Add what they're actively doing right now
+    if (entity.currentMovementAction === 'searching' && entity.movementActionData.searchTarget) {
+      activityMessage += ` (searching for ${entity.movementActionData.searchTarget})`;
+    } else if (entity.currentMovementAction === 'moving_to' && entity.movementActionData.targetEntity) {
+      const targetType = entity.movementActionData.targetEntity.type;
+      activityMessage += ` (moving to ${targetType})`;
+    } else if (entity.currentMovementAction === 'wandering') {
+      activityMessage += ` (wandering)`;
+    }
+  }
+
   // Translate needs to words (only include if not fine)
   const needs = {
     food: entity.food,
@@ -303,7 +319,7 @@ function buildPrompt(entity, entities, context = {}) {
   // Build minimal prompt (words only, no numbers)
   let prompt = `You are Lira — practical and cautious but kind.
 Assume commonsense. Treat the need words as literal state tags (not storytelling).
-${contextMessage}${historyMessage}
+${contextMessage}${historyMessage}${activityMessage}
 
 Situation: ${timeDescription}. Goal: survive and thrive.
 Needs: ${needsLine}
