@@ -8,6 +8,7 @@ import { injectActions, getCollectionState } from './actions.js';
 import { updateVisibility } from './visibility.js';
 import { updateEntityPosition, initMovementState, clearMovementState } from './movement.js';
 import { render } from './rendering.js';
+import * as entityRegistry from './entityRegistry.js';
 import { updateNeeds } from './needs.js';
 import * as ai from './ai.js';
 
@@ -511,11 +512,14 @@ function getTargetsForAction(actionId) {
 
   switch (actionId) {
     case 'searchFor':
-      return [
-        { label: '🍎 Apple', value: 'apple' },
-        { label: '🫐 Berry', value: 'berry' },
-        { label: '🔥 Bonfire', value: 'bonfire' }
-      ];
+      // Dynamically generate from entity registry
+      const searchableTypes = entityRegistry.getSearchableTypes();
+      return searchableTypes.map(type => {
+        const emoji = entityRegistry.getEntityEmoji(type);
+        const config = entityRegistry.getEntityConfig(type);
+        const displayName = config.displayName || type;
+        return { label: `${emoji} ${displayName}`, value: type };
+      });
 
     case 'moveTo':
       // Get all visible entities
@@ -578,17 +582,8 @@ function getTargetsForAction(actionId) {
 }
 
 function getEntityEmoji(type) {
-  const emojiMap = {
-    apple: '🍎',
-    berry: '🫐',
-    tree: '🌳',
-    grass: '🌿',
-    bonfire: '🔥',
-    character: '🧍',
-    wolf: '🐺',
-    stick: '🪵'
-  };
-  return emojiMap[type] || '❓';
+  // Use entity registry for emojis (single source of truth)
+  return entityRegistry.getEntityEmoji(type);
 }
 
 function executeAction(actionId, target) {

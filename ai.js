@@ -12,6 +12,7 @@ import * as config from './config.js';
 import { distance } from './utils.js';
 import { getInGameTime, formatInGameTime, getCycleState } from './cycle.js';
 import * as translator from './translator.js';
+import * as entityRegistry from './entityRegistry.js';
 
 // ============================================================
 // CONFIGURATION
@@ -26,17 +27,6 @@ const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/
 const MAX_CALLS_PER_WINDOW = 5;
 const RATE_LIMIT_WINDOW_MS = 10000; // 10 seconds
 const MIN_TIME_BETWEEN_CALLS = 2000; // 2 seconds minimum between calls
-
-// Entity categories for smart interrupt logic
-const ENTITY_CATEGORIES = {
-  apple: 'food',
-  berry: 'food',
-  stick: 'fuel',
-  bonfire: 'warmth',
-  wolf: 'threat',
-  tree: 'source',    // Source of food (apples)
-  grass: 'source'    // Source of food (berries)
-};
 
 // ============================================================
 // STATE TRACKING
@@ -153,7 +143,7 @@ export function shouldTriggerDecision(entity, context = {}) {
   // New important entity visible
   if (context.newEntityVisible) {
     const newEntityType = context.newEntityVisible.type;
-    const newCategory = ENTITY_CATEGORIES[newEntityType];
+    const newCategory = entityRegistry.getEntityCategory(newEntityType);
 
     // Only care about categorized entities
     if (!newCategory) {
@@ -222,7 +212,7 @@ export function shouldTriggerDecision(entity, context = {}) {
       }
 
       // Check category of current target
-      const currentCategory = ENTITY_CATEGORIES[currentTarget.type];
+      const currentCategory = entityRegistry.getEntityCategory(currentTarget.type);
 
       // Same category (e.g., both food, both fuel) - don't interrupt
       // Let AI finish current action rather than thrash between similar resources
@@ -404,16 +394,21 @@ Visible: ${nearbyLine}`;
   // Filter available actions based on current state
   const availableActions = [];
 
-  // Always available
-  availableActions.push('searchFor: {"name":"searchFor","args":{"itemType":"apple"|"berry"|"stick"|"bonfire"}}');
+  // Always available - dynamically generate searchable types from entity registry
+  const searchableTypes = entityRegistry.getSearchableTypes().map(t => `"${t}"`).join('|');
+  availableActions.push(`searchFor: {"name":"searchFor","args":{"itemType":${searchableTypes}}}`);
   availableActions.push('moveTo: {"name":"moveTo","args":{"target":"<type>"}}');
   availableActions.push('wander: {"name":"wander","args":{}}');
 
   // collect - only if inventory not full and collectibles visible
   if (!entity.inventory.isFull()) {
-    const hasCollectibles = visible.some(e =>
-      ['tree', 'grass', 'stick', 'apple', 'berry'].includes(e.type)
-    );
+    const collectibleTypes = entityRegistry.getCollectibleTypes();
+    // Also check for entities that can contain collectibles (tree, grass)
+    const collectibleSources = Object.keys(entityRegistry.ENTITY_REGISTRY)
+      .filter(type => entityRegistry.ENTITY_REGISTRY[type].canContainItems);
+    const allCollectibleTypes = [...collectibleTypes, ...collectibleSources];
+
+    const hasCollectibles = visible.some(e => allCollectibleTypes.includes(e.type));
     if (hasCollectibles) {
       availableActions.push('collect: {"name":"collect","args":{"target":"<type>","itemType":"<type>"}}');
     }
@@ -427,14 +422,12 @@ Visible: ${nearbyLine}`;
     }
   }
 
-  // eat - only if has food
-  const hasApple = entity.inventory.hasItem('apple');
-  const hasBerry = entity.inventory.hasItem('berry');
-  if (hasApple || hasBerry) {
-    const foodTypes = [];
-    if (hasApple) foodTypes.push('"apple"');
-    if (hasBerry) foodTypes.push('"berry"');
-    availableActions.push(`eat: {"name":"eat","args":{"foodType":${foodTypes.join('|')}}}`);
+  // eat - only if has food (dynamically check all consumable types)
+  const consumableTypes = entityRegistry.getConsumableTypes();
+  const availableFoodTypes = consumableTypes.filter(type => entity.inventory.hasItem(type));
+  if (availableFoodTypes.length > 0) {
+    const foodTypesStr = availableFoodTypes.map(t => `"${t}"`).join('|');
+    availableActions.push(`eat: {"name":"eat","args":{"foodType":${foodTypesStr}}}`);
   }
 
   // sleep - only if tired
