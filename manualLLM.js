@@ -21,19 +21,17 @@ export function isManualMode() {
 
 export function setManualMode(enabled) {
   isManualModeEnabled = enabled;
-  const toggle = document.getElementById('manual-mode-toggle');
-  const checkbox = document.getElementById('manual-mode-checkbox');
+  const button = document.getElementById('manual-mode-button');
 
-  if (toggle) {
+  if (button) {
     if (enabled) {
-      toggle.classList.add('active');
+      button.classList.add('enabled');
+      button.title = 'Manual Mode ON - Click when pulsing to decide';
     } else {
-      toggle.classList.remove('active');
+      button.classList.remove('enabled');
+      button.classList.remove('decision-needed');
+      button.title = 'Manual LLM Mode - Act as the AI';
     }
-  }
-
-  if (checkbox) {
-    checkbox.checked = enabled;
   }
 
   console.log(`🧠 Manual LLM Mode: ${enabled ? 'ENABLED' : 'DISABLED'}`);
@@ -52,21 +50,14 @@ export function requestManualDecision(entity, entities, context, prompt) {
   return new Promise((resolve, reject) => {
     pendingDecision = { entity, entities, context, prompt, resolve, reject };
 
-    // Pulse the AI button to indicate decision needed
-    const aiButton = document.getElementById('ai-toggle-button');
-    if (aiButton) {
-      aiButton.classList.add('decision-needed');
-      aiButton.title = 'Click to make a decision!';
-
-      // Auto-open panel when button is clicked
-      const clickHandler = () => {
-        showDecisionPanel();
-        aiButton.removeEventListener('click', clickHandler);
-      };
-      aiButton.addEventListener('click', clickHandler);
+    // Pulse the manual mode button to indicate decision needed
+    const manualButton = document.getElementById('manual-mode-button');
+    if (manualButton) {
+      manualButton.classList.add('decision-needed');
+      manualButton.title = 'Click to make a decision!';
     }
 
-    console.log('🧠 Decision needed! Click the pulsing AI button to decide.');
+    console.log('🧠 Decision needed! Click the pulsing Manual Mode button (🧠) to decide.');
   });
 }
 
@@ -103,7 +94,6 @@ function showDecisionPanel() {
   // Parse available actions from prompt
   const actions = parseActionsFromPrompt(pendingDecision.prompt);
   populateActionDropdown(actions);
-  populateQuickActions(actions);
 
   // Show panel
   panel.classList.add('show');
@@ -118,10 +108,12 @@ function hideDecisionPanel() {
 }
 
 function hidePulse() {
-  const aiButton = document.getElementById('ai-toggle-button');
-  if (aiButton) {
-    aiButton.classList.remove('decision-needed');
-    aiButton.title = 'Toggle AI Control';
+  const manualButton = document.getElementById('manual-mode-button');
+  if (manualButton) {
+    manualButton.classList.remove('decision-needed');
+    manualButton.title = isManualModeEnabled
+      ? 'Manual Mode ON - Click when pulsing to decide'
+      : 'Manual LLM Mode - Act as the AI';
   }
 }
 
@@ -207,52 +199,6 @@ function populateActionDropdown(actions) {
 }
 
 /**
- * Populate quick action buttons
- */
-function populateQuickActions(actions) {
-  const container = document.getElementById('manual-quick-actions');
-  if (!container) return;
-
-  container.innerHTML = '';
-
-  // Create buttons for common actions
-  const commonActions = ['searchFor', 'collect', 'eat', 'sleep', 'wander'];
-
-  commonActions.forEach(actionName => {
-    const action = actions.find(a => a.name === actionName);
-    if (action) {
-      const btn = document.createElement('button');
-      btn.className = 'manual-decision-action-btn';
-      btn.textContent = getActionEmoji(actionName) + ' ' + actionName;
-      btn.onclick = () => selectAction(actionName, action.template);
-      container.appendChild(btn);
-    }
-  });
-}
-
-function getActionEmoji(actionName) {
-  const emojiMap = {
-    searchFor: '🔍',
-    moveTo: '🚶',
-    collect: '🎯',
-    eat: '🍽️',
-    sleep: '😴',
-    wander: '🌀',
-    addFuel: '🪵',
-    drop: '📤'
-  };
-  return emojiMap[actionName] || '⚡';
-}
-
-function selectAction(actionName, template) {
-  const select = document.getElementById('manual-action');
-  if (select) {
-    select.value = actionName;
-    select.dispatchEvent(new Event('change'));
-  }
-}
-
-/**
  * Populate args input fields
  */
 function populateArgsInputs(args) {
@@ -283,36 +229,47 @@ function populateArgsInputs(args) {
     label.style.fontSize = '12px';
     label.style.color = '#ccc';
 
-    let input;
+    // Always use dropdown
+    const select = document.createElement('select');
+    select.className = 'manual-decision-select';
+    select.dataset.argKey = key;
 
-    // Check if value contains pipe (options)
+    const placeholderOption = document.createElement('option');
+    placeholderOption.value = '';
+    placeholderOption.textContent = '-- Select --';
+    select.appendChild(placeholderOption);
+
+    let options = [];
+
+    // Check if value contains pipe (explicit options)
     if (typeof value === 'string' && value.includes('|')) {
-      const options = value.split('|').map(v => v.replace(/"/g, '').trim());
-      input = document.createElement('select');
-      input.className = 'manual-decision-select';
-
-      const placeholderOption = document.createElement('option');
-      placeholderOption.value = '';
-      placeholderOption.textContent = '-- Select --';
-      input.appendChild(placeholderOption);
-
-      options.forEach(opt => {
-        const option = document.createElement('option');
-        option.value = opt;
-        option.textContent = opt;
-        input.appendChild(option);
-      });
+      options = value.split('|').map(v => v.replace(/"/g, '').trim());
     } else {
-      input = document.createElement('input');
-      input.type = 'text';
-      input.className = 'manual-decision-input';
-      input.placeholder = typeof value === 'string' ? value.replace(/[<>"]/g, '') : String(value);
+      // Infer options from argument name or use generic from context
+      if (key === 'itemType' || key === 'target') {
+        // Get from entity registry searchable types
+        options = entityRegistry.getSearchableTypes();
+      } else if (key === 'foodType') {
+        // Get consumable types
+        options = entityRegistry.getConsumableTypes();
+      } else {
+        // Generic fallback - use visible entities from pending decision
+        if (pendingDecision && pendingDecision.entity) {
+          const visible = pendingDecision.entity.getVisibleEntities();
+          options = [...new Set(visible.map(e => e.type))];
+        }
+      }
     }
 
-    input.dataset.argKey = key;
+    options.forEach(opt => {
+      const option = document.createElement('option');
+      option.value = opt;
+      option.textContent = opt;
+      select.appendChild(option);
+    });
 
     wrapper.appendChild(label);
-    wrapper.appendChild(input);
+    wrapper.appendChild(select);
     container.appendChild(wrapper);
   });
 }
@@ -329,11 +286,6 @@ function hideArgsSection() {
  */
 function executeManualDecision() {
   if (!pendingDecision) return;
-
-  // Gather inputs
-  const intent = document.getElementById('manual-intent')?.value || 'Take action';
-  const planText = document.getElementById('manual-plan')?.value || '';
-  const plan = planText.split('\n').filter(line => line.trim());
 
   const actionName = document.getElementById('manual-action')?.value;
   if (!actionName) {
@@ -352,20 +304,22 @@ function executeManualDecision() {
     }
   });
 
-  const bubbleText = document.getElementById('manual-bubble-text')?.value || '';
-  const bubbleEmoji = document.getElementById('manual-bubble-emoji')?.value || '💭';
+  // Auto-generate random emoji and simple text
+  const emojis = ['💭', '🤔', '👍', '✨', '🎯', '🔥', '💪', '😊', '🌟', '⚡'];
+  const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+  const bubbleText = actionName; // Simple: just show the action name
 
   // Build decision object
   const decision = {
-    intent,
-    plan,
+    intent: `Manual: ${actionName}`,
+    plan: [],
     next_action: {
       name: actionName,
       args
     },
     bubble: {
       text: bubbleText,
-      emoji: bubbleEmoji
+      emoji: randomEmoji
     }
   };
 
@@ -384,19 +338,17 @@ function executeManualDecision() {
 // ============================================================
 
 export function initManualLLMMode() {
-  // Toggle checkbox
-  const checkbox = document.getElementById('manual-mode-checkbox');
-  const toggle = document.getElementById('manual-mode-toggle');
+  // Manual mode button
+  const manualButton = document.getElementById('manual-mode-button');
 
-  if (checkbox && toggle) {
-    checkbox.addEventListener('change', (e) => {
-      setManualMode(e.target.checked);
-    });
-
-    toggle.addEventListener('click', (e) => {
-      if (e.target !== checkbox) {
-        checkbox.checked = !checkbox.checked;
-        setManualMode(checkbox.checked);
+  if (manualButton) {
+    manualButton.addEventListener('click', () => {
+      // If decision is pending, show the decision panel
+      if (pendingDecision) {
+        showDecisionPanel();
+      } else {
+        // Toggle manual mode on/off
+        setManualMode(!isManualModeEnabled);
       }
     });
   }
@@ -408,9 +360,9 @@ export function initManualLLMMode() {
       hideDecisionPanel();
       // Re-show pulse if decision still pending
       if (pendingDecision) {
-        const aiButton = document.getElementById('ai-toggle-button');
-        if (aiButton) {
-          aiButton.classList.add('decision-needed');
+        const manualBtn = document.getElementById('manual-mode-button');
+        if (manualBtn) {
+          manualBtn.classList.add('decision-needed');
         }
       }
     });
