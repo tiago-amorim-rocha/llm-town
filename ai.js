@@ -286,18 +286,25 @@ ${contextMessage}${historyMessage}
 Situation: ${timeDescription}. Goal: survive and thrive.
 Needs: ${needsLine}
 Inventory: ${inventoryLine}
+
+Current visibility:
 Nearby: ${nearbyLine}`;
 
   if (memoryLine) {
-    prompt += `\nMemory: ${memoryLine}`;
+    prompt += `\n\nRemembered locations (not currently visible):
+Memory: ${memoryLine}`;
   }
+
+  prompt += `
+
+Note: "Nearby" = things you can SEE right now. "Memory" = things you SAW before but are now out of sight.`;
 
   // Filter available actions based on current state
   const availableActions = [];
 
   // Always available
-  availableActions.push('- searchFor: {"name":"searchFor","args":{"itemType":"apple"|"berry"|"stick"|"bonfire"}}\n  → Find item type if not visible');
-  availableActions.push('- moveTo: {"name":"moveTo","args":{"target":"<type>"}}\n  → Walk to visible entity');
+  availableActions.push('- searchFor: {"name":"searchFor","args":{"itemType":"apple"|"berry"|"stick"|"bonfire"}}\n  → Wander to find item type');
+  availableActions.push('- moveTo: {"name":"moveTo","args":{"target":"<type>"}}\n  → Walk to entity (visible OR remembered)');
   availableActions.push('- wander: {"name":"wander","args":{}}\n  → Explore randomly');
 
   // collect - only if inventory not full and collectibles visible
