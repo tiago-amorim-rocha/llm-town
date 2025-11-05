@@ -261,14 +261,21 @@ Nearby: ${nearbyLine}`;
   prompt += `
 Constraints: interact only at hand; carry up to two items.
 
-Allowed actions (with exact parameter names):
+Allowed actions (with exact parameter names and prerequisites):
 - searchFor: {"name":"searchFor","args":{"itemType":"apple"|"berry"|"stick"|"bonfire"}}
+  → Wanders to find specified item type
 - moveTo: {"name":"moveTo","args":{"target":"entityId"}}
+  → Walks to target entity
 - collect: {"name":"collect","args":{"target":"entityId","itemType":"apple"|"berry"|"stick"}}
+  → Picks up item from target (requires: target "at hand", inventory not full)
 - addFuel: {"name":"addFuel","args":{}}
+  → Adds stick to bonfire (requires: stick in inventory, bonfire at hand)
 - eat: {"name":"eat","args":{"foodType":"apple"|"berry"}}
+  → Consumes food from inventory (requires: food in inventory)
 - sleep: {"name":"sleep","args":{}}
+  → Rests to restore energy
 - wander: {"name":"wander","args":{}}
+  → Explores randomly
 
 Respond only with strict JSON:
 {
@@ -278,8 +285,8 @@ Respond only with strict JSON:
   "bubble": {"text":"<≤8 words>","emoji":"<one>"}
 }
 
-Example: To collect a stick from grass entity "gra2":
-{"intent":"gather fuel","plan":["collect stick"],"next_action":{"name":"collect","args":{"target":"gra2","itemType":"stick"}},"bubble":{"text":"gathering sticks","emoji":"🪵"}}`;
+Example - To add fuel, must collect stick first:
+{"intent":"fuel bonfire","plan":["collect stick","add to fire"],"next_action":{"name":"collect","args":{"target":"sti1","itemType":"stick"}},"bubble":{"text":"getting sticks","emoji":"🪵"}}`;
 
   return prompt;
 }
