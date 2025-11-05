@@ -917,7 +917,15 @@ async function init() {
   initRespawnButton();
   initActionMenu();
   initAIToggleButton();
-  manualLLM.initManualLLMMode();
+
+  // Initialize manual mode with callback to trigger decisions
+  const triggerManualDecision = () => {
+    if (characterEntity && ai.isAIEnabled(characterEntity)) {
+      ai.triggerDecision(characterEntity, entities, {});
+    }
+  };
+  manualLLM.initManualLLMMode(triggerManualDecision);
+
   setInterval(checkForNewVersion, VERSION_CHECK_INTERVAL);
 
   canvas = document.createElement('div');

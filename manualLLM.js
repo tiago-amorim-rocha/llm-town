@@ -337,7 +337,10 @@ function executeManualDecision() {
 // INITIALIZATION
 // ============================================================
 
-export function initManualLLMMode() {
+export function initManualLLMMode(triggerDecisionCallback) {
+  // Store callback for triggering decisions
+  window.__triggerManualDecision = triggerDecisionCallback;
+
   // Manual mode button
   const manualButton = document.getElementById('manual-mode-button');
 
@@ -348,7 +351,14 @@ export function initManualLLMMode() {
         showDecisionPanel();
       } else {
         // Toggle manual mode on/off
-        setManualMode(!isManualModeEnabled);
+        const newState = !isManualModeEnabled;
+        setManualMode(newState);
+
+        // If enabling manual mode, trigger initial decision
+        if (newState && triggerDecisionCallback) {
+          console.log('🧠 Manual mode enabled, triggering initial decision...');
+          triggerDecisionCallback();
+        }
       }
     });
   }
