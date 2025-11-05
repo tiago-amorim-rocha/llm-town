@@ -256,7 +256,7 @@ export function translateMemory(visibleEntities, rememberedLocations, characterE
 
     // Convert distance to walking time (at ~22.5 px/s = ~1350 px/min)
     const walkMinutes = Math.round(dist / 1350);
-    const timeStr = walkMinutes < 1 ? 'nearby' : `${walkMinutes}min walk`;
+    const timeStr = walkMinutes < 1 ? 'close' : `${walkMinutes}min`;
 
     memories.push(`${entityType} ${dir} (${timeStr})`);
   }
