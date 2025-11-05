@@ -36,7 +36,17 @@ function executeCollect(smartEntity, target, itemType, callback) {
   // Check if entity is close enough to target
   const dist = distance(smartEntity.x, smartEntity.y, target.x, target.y);
   if (dist > COLLECTION_RANGE) {
-    callback({ success: false, reason: 'too_far', distance: dist });
+    // Auto-navigate to target first, then collect
+    console.log(`📍 ${smartEntity.type} too far from ${target.type} (${dist.toFixed(0)}px), navigating first...`);
+    executeMoveTo(smartEntity, target, COLLECTION_RANGE, (moveResult) => {
+      if (!moveResult.success) {
+        callback({ success: false, reason: 'navigation_failed', details: moveResult });
+        return;
+      }
+      // Now try collecting again (should be close enough now)
+      console.log(`🎯 ${smartEntity.type} arrived, now collecting ${itemType}...`);
+      executeCollect(smartEntity, target, itemType, callback);
+    });
     return;
   }
 
@@ -338,7 +348,17 @@ function executeAddFuel(smartEntity, bonfireEntity, callback) {
   // Check if close enough to bonfire
   const dist = distance(smartEntity.x, smartEntity.y, bonfireEntity.x, bonfireEntity.y);
   if (dist > COLLECTION_RANGE) {
-    callback({ success: false, reason: 'too_far', distance: dist });
+    // Auto-navigate to bonfire first, then add fuel
+    console.log(`📍 ${smartEntity.type} too far from bonfire (${dist.toFixed(0)}px), navigating first...`);
+    executeMoveTo(smartEntity, bonfireEntity, COLLECTION_RANGE, (moveResult) => {
+      if (!moveResult.success) {
+        callback({ success: false, reason: 'navigation_failed', details: moveResult });
+        return;
+      }
+      // Now try adding fuel again (should be close enough now)
+      console.log(`🎯 ${smartEntity.type} arrived at bonfire, now adding fuel...`);
+      executeAddFuel(smartEntity, bonfireEntity, callback);
+    });
     return;
   }
 
