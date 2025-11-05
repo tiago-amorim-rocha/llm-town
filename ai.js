@@ -261,14 +261,14 @@ Nearby: ${nearbyLine}`;
   prompt += `
 Constraints: interact only at hand; carry up to two items.
 
-Allowed actions:
-searchFor('apple'|'berry'|'stick'|'bonfire')
-moveTo(id)
-collect(id,'apple'|'berry'|'stick')
-addFuel('bon1')
-eat('apple'|'berry')
-sleep()
-wander()
+Allowed actions (with exact parameter names):
+- searchFor: {"name":"searchFor","args":{"itemType":"apple"|"berry"|"stick"|"bonfire"}}
+- moveTo: {"name":"moveTo","args":{"target":"entityId"}}
+- collect: {"name":"collect","args":{"target":"entityId","itemType":"apple"|"berry"|"stick"}}
+- addFuel: {"name":"addFuel","args":{}}
+- eat: {"name":"eat","args":{"foodType":"apple"|"berry"}}
+- sleep: {"name":"sleep","args":{}}
+- wander: {"name":"wander","args":{}}
 
 Respond only with strict JSON:
 {
@@ -276,7 +276,10 @@ Respond only with strict JSON:
   "plan": ["<step1>", "<step2>", "<step3>"],
   "next_action": {"name":"...","args":{...}},
   "bubble": {"text":"<≤8 words>","emoji":"<one>"}
-}`;
+}
+
+Example: To collect a stick from grass entity "gra2":
+{"intent":"gather fuel","plan":["collect stick"],"next_action":{"name":"collect","args":{"target":"gra2","itemType":"stick"}},"bubble":{"text":"gathering sticks","emoji":"🪵"}}`;
 
   return prompt;
 }
