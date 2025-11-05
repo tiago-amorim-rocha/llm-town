@@ -154,6 +154,18 @@ export function shouldTriggerDecision(entity, context = {}) {
       return false;
     }
 
+    // Don't interrupt if we JUST made a decision (within last 10 seconds)
+    // Let the agent commit to their choice before being distracted
+    const timeSinceLastCall = Date.now() - state.lastCallTime;
+    if (timeSinceLastCall < 10000) {
+      // Exception: threats ALWAYS interrupt
+      if (newCategory === 'threat') {
+        return true;
+      }
+      // Otherwise, let the recent decision play out
+      return false;
+    }
+
     // If currently moving to a target, check if we should interrupt
     if (entity.currentMovementAction === 'moving_to' && entity.movementActionData.target) {
       const currentTarget = entity.movementActionData.target;
@@ -183,7 +195,8 @@ export function shouldTriggerDecision(entity, context = {}) {
       return true;
     }
 
-    // Not moving or wandering - allow trigger for any new entity
+    // If wandering/searching and not a recent decision, allow trigger
+    // (But recent decision check above prevents immediate interrupts)
     return true;
   }
 
