@@ -295,10 +295,6 @@ ${nearbyLine}`;
 ${memoryLine}`;
   }
 
-  prompt += `
-
-Note: Current visibility = things you SEE now. Remembered locations = things you SAW before (out of sight).`;
-
   // Filter available actions based on current state
   const availableActions = [];
 
