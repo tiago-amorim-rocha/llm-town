@@ -211,45 +211,92 @@ export function translateNearbyEntities(visibleEntities, characterEntity, needs)
 // ============================================================
 
 /**
- * Translate memory to simple one-line description
- * For now: just bonfire location if not visible
+ * Translate memory to useful location hints
+ * Shows remembered entity locations with direction and walking time
+ * Filtered to only show memories relevant to current needs
  * @param {Entity[]} visibleEntities - Currently visible entities
  * @param {Map} rememberedLocations - Map of remembered entity locations
+ * @param {Entity} characterEntity - The character (for relative directions)
+ * @param {object} needs - Current needs {food, energy, warmth, health}
  * @returns {string|null} - Memory description or null
  */
-export function translateMemory(visibleEntities, rememberedLocations) {
-  // Check if bonfire is visible
-  const bonfireVisible = visibleEntities.some(e => e.type === 'bonfire');
+export function translateMemory(visibleEntities, rememberedLocations, characterEntity, needs) {
+  const memories = [];
 
-  if (!bonfireVisible && rememberedLocations.has('bonfire')) {
-    const loc = rememberedLocations.get('bonfire');
-    // Simple direction calculation (N, S, E, W, NE, NW, SE, SW)
-    const dir = getCardinalDirection(loc.x, loc.y);
-    return `remembers bonfire ${dir}`;
+  // Determine what's useful based on needs
+  const wantsFood = needs.food < 80;
+  const wantsWarmth = needs.warmth < 80;
+  const wantsEnergy = needs.energy < 80;
+
+  // Check each remembered location
+  for (const [entityType, memData] of rememberedLocations.entries()) {
+    // Skip if currently visible
+    if (visibleEntities.some(e => e.type === entityType)) {
+      continue;
+    }
+
+    // Filter by usefulness
+    let isUseful = false;
+    if (entityType === 'bonfire') isUseful = wantsWarmth || wantsEnergy; // Warmth and sleep location
+    if (entityType === 'tree' || entityType === 'apple') isUseful = wantsFood;
+    if (entityType === 'grass' || entityType === 'berry') isUseful = wantsFood;
+    if (entityType === 'stick') isUseful = true; // Always useful for bonfire
+
+    // Also include bonfire if nothing else useful (it's a landmark)
+    if (entityType === 'bonfire' && memories.length === 0) isUseful = true;
+
+    if (!isUseful) continue;
+
+    // Calculate relative direction and distance
+    const dir = getRelativeDirection(characterEntity.x, characterEntity.y, memData.x, memData.y);
+    const dist = Math.sqrt(
+      Math.pow(memData.x - characterEntity.x, 2) +
+      Math.pow(memData.y - characterEntity.y, 2)
+    );
+
+    // Convert distance to walking time (at ~22.5 px/s = ~1350 px/min)
+    const walkMinutes = Math.round(dist / 1350);
+    const timeStr = walkMinutes < 1 ? 'nearby' : `${walkMinutes}min walk`;
+
+    memories.push(`${entityType} ${dir} (${timeStr})`);
   }
 
-  return null;
+  if (memories.length === 0) return null;
+
+  return memories.join(', ');
 }
 
 /**
- * Helper: Get cardinal direction from character position (0,0 is assumed center)
- * @param {number} x - Target x position
- * @param {number} y - Target y position
- * @returns {string} - Cardinal direction (e.g., "east", "northwest")
+ * Helper: Get relative direction from character to target (8-direction system)
+ * @param {number} charX - Character's x position
+ * @param {number} charY - Character's y position
+ * @param {number} targetX - Target x position
+ * @param {number} targetY - Target y position
+ * @returns {string} - Relative direction (e.g., "E", "NE", "SSW")
  */
-function getCardinalDirection(x, y) {
-  // Assuming character is at some position and we're describing relative direction
-  // For simplicity, using absolute screen coordinates
-  const angle = Math.atan2(y, x) * 180 / Math.PI;
+function getRelativeDirection(charX, charY, targetX, targetY) {
+  const dx = targetX - charX;
+  const dy = targetY - charY;
 
-  if (angle >= -22.5 && angle < 22.5) return 'east';
-  if (angle >= 22.5 && angle < 67.5) return 'southeast';
-  if (angle >= 67.5 && angle < 112.5) return 'south';
-  if (angle >= 112.5 && angle < 157.5) return 'southwest';
-  if (angle >= 157.5 || angle < -157.5) return 'west';
-  if (angle >= -157.5 && angle < -112.5) return 'northwest';
-  if (angle >= -112.5 && angle < -67.5) return 'north';
-  if (angle >= -67.5 && angle < -22.5) return 'northeast';
+  // Calculate angle in degrees (0° = east, 90° = south, -90° = north)
+  let angle = Math.atan2(dy, dx) * 180 / Math.PI;
 
-  return 'unknown';
+  // Normalize to 0-360
+  if (angle < 0) angle += 360;
+
+  // 16-direction system for more precision (but display as simplified)
+  // N (337.5-22.5), NE (22.5-67.5), E (67.5-112.5), SE (112.5-157.5),
+  // S (157.5-202.5), SW (202.5-247.5), W (247.5-292.5), NW (292.5-337.5)
+
+  // For more granular directions, we can use SSW, ESE, etc.
+  if (angle >= 337.5 || angle < 22.5) return 'E';
+  if (angle >= 22.5 && angle < 67.5) return 'SE';
+  if (angle >= 67.5 && angle < 112.5) return 'S';
+  if (angle >= 112.5 && angle < 157.5) return 'SW';
+  if (angle >= 157.5 && angle < 202.5) return 'W';
+  if (angle >= 202.5 && angle < 247.5) return 'NW';
+  if (angle >= 247.5 && angle < 292.5) return 'N';
+  if (angle >= 292.5 && angle < 337.5) return 'NE';
+
+  return '?';
 }

@@ -57,7 +57,7 @@ export const BACKGROUND_COLOR = "#2a5d2a";  // Lighter green for better visibili
 
 // Movement speed (in pixels per in-game hour)
 // This maintains visual speed across different TIME_MULTIPLIERs
-const MOVEMENT_SPEED_PER_INGAME_HOUR = 675;  // Equivalent to 45 px/s real at TIME_MULTIPLIER=240
+const MOVEMENT_SPEED_PER_INGAME_HOUR = 337.5;  // Half speed - equivalent to 22.5 px/s real at TIME_MULTIPLIER=240
 
 // Convert to pixels per real second for use in movement calculations
 export const MOVEMENT_SPEED = MOVEMENT_SPEED_PER_INGAME_HOUR / 3600 * time.TIME_MULTIPLIER;

@@ -275,8 +275,8 @@ function buildPrompt(entity, entities, context = {}) {
     ? nearbyDescriptions.join('; ')
     : 'nothing visible';
 
-  // Translate memory (simple: bonfire location if not visible)
-  const memoryLine = translator.translateMemory(visible, entity.memory.discovered);
+  // Translate memory (filtered, with directions and time estimates)
+  const memoryLine = translator.translateMemory(visible, entity.memory.discovered, entity, needs);
 
   // Build minimal prompt (words only, no numbers)
   let prompt = `You are Lira — practical and cautious but kind.
