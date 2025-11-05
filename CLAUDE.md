@@ -162,22 +162,12 @@ const timeStr = formatInGameTime(); // "Day 1, 14:30"
 
 **What it does:**
 1. **Merges to main** - Automatically merges your branch into `main`
-2. **Deploys** - GitHub Pages serves the new version immediately
-
-**Note:** version.txt is NOT updated on feature branches, eliminating rebase conflicts.
-
-### ✅ Auto-versioning on Main
-**File**: `.github/workflows/version-on-main.yml`
-**Trigger**: Push to `main` branch
-
-**What it does:**
-1. **Updates version.txt** - Generates timestamp with milliseconds
-2. **Commits automatically** - Pushes version.txt update to main
-3. **Deploys** - Triggers cache busting for all clients
+2. **Updates version.txt** - Generates timestamp with milliseconds and commits to main
+3. **Deploys** - GitHub Pages serves the new version immediately
 
 **Version update logic:**
 ```bash
-# Generates millisecond timestamp
+# After merge, generates millisecond timestamp
 date +%s%3N > version.txt
 # Commits and pushes to main
 ```
@@ -186,6 +176,18 @@ date +%s%3N > version.txt
 - ✅ All version.txt updates happen on `main` only
 - ✅ Feature branches never get version.txt updates
 - ✅ No rebase conflicts when making multiple commits
+- ✅ Single workflow handles both merge and versioning
+
+### ✅ Auto-versioning on Main (Fallback)
+**File**: `.github/workflows/version-on-main.yml`
+**Trigger**: Direct push to `main` branch (manual pushes only)
+
+**What it does:**
+1. **Updates version.txt** - Generates timestamp with milliseconds
+2. **Commits automatically** - Pushes version.txt update to main
+3. **Deploys** - Triggers cache busting for all clients
+
+**Note:** This workflow serves as a fallback for direct pushes to main (not via autopromote). Due to GitHub Actions security, workflows triggered by `github-actions[bot]` don't trigger other workflows, so autopromote handles versioning directly.
 
 ### ✅ Branch Cleanup
 **File**: `.github/workflows/cleanup-old-branches.yml`
