@@ -49,7 +49,9 @@ export function updateEntityPosition(entity, isCollecting = false, deltaTime = 1
   }
 
   // Handle movement based on action type
-  if (entity.currentMovementAction === 'wandering') {
+  if (entity.currentMovementAction === 'wandering' || entity.currentMovementAction === 'searching') {
+    // Both wandering and searching use random wandering movement
+    // The difference is in the context (searching has a goal/target)
     applyWanderingMovement(entity, deltaTime);
   } else if (entity.currentMovementAction === 'moving_to') {
     applyMoveToMovement(entity, deltaTime);
