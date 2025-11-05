@@ -9,22 +9,12 @@ import * as config from './config.js';
 import { Item, DummyEntity } from './entities.js';
 import { distance } from './utils.js';
 import * as needs from './needs.js';
+import * as entityRegistry from './entityRegistry.js';
 
 // Import configuration (already converted from in-game time to real time in config.js)
 const COLLECTION_RANGE = config.COLLECTION_RANGE;
 const APPLE_COLLECTION_TIME = config.APPLE_COLLECTION_TIME;
 const BERRY_COLLECTION_TIME = config.BERRY_COLLECTION_TIME;
-
-// Entity categories for search context
-const ENTITY_CATEGORIES = {
-  apple: 'food',
-  berry: 'food',
-  stick: 'fuel',
-  bonfire: 'warmth',
-  wolf: 'threat',
-  tree: 'source',
-  grass: 'source'
-};
 
 // Collection state (for animation)
 let isCollecting = false;
@@ -160,26 +150,15 @@ function executeDrop(smartEntity, itemType, callback, entities) {
 function executeSearchFor(smartEntity, itemType, callback) {
   console.log(`🔍 ${smartEntity.type} searching for ${itemType}...`);
 
-  // Determine which entity type has this item (or is the target itself)
-  let targetType = null;
-  let isDirectEntitySearch = false;  // True if searching for entity itself, not an item
-
-  if (itemType === 'apple') {
-    targetType = 'tree';
-  } else if (itemType === 'berry') {
-    targetType = 'grass';
-  } else if (itemType === 'stick') {
-    targetType = 'stick';
-    isDirectEntitySearch = true;
-  } else if (itemType === 'bonfire') {
-    targetType = 'bonfire';
-    isDirectEntitySearch = true;
-  }
+  // Use entity registry to resolve search target (data-driven approach)
+  const { targetType, isDirectSearch } = entityRegistry.resolveSearchTarget(itemType);
 
   if (!targetType) {
     callback({ success: false, reason: 'unknown_item_type' });
     return;
   }
+
+  const isDirectEntitySearch = isDirectSearch;
 
   // Track search state
   const searchStartTime = Date.now();
@@ -228,7 +207,7 @@ function executeSearchFor(smartEntity, itemType, callback) {
   smartEntity.currentMovementAction = 'searching';
   smartEntity.movementActionData = {
     searchTarget: itemType,
-    targetCategory: ENTITY_CATEGORIES[itemType] || ENTITY_CATEGORIES[targetType],
+    targetCategory: entityRegistry.getEntityCategory(itemType) || entityRegistry.getEntityCategory(targetType),
     startTime: Date.now(),
     duration: searchDuration
   };
