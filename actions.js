@@ -189,7 +189,7 @@ function executeSearchFor(smartEntity, itemType, callback) {
   const alreadyVisible = Array.from(smartEntity.visibleEntities).find(isTargetMatch);
   if (alreadyVisible) {
     console.log(`✅ ${smartEntity.type} found ${itemType} immediately at ${alreadyVisible.type}`);
-    callback({ success: true, target: alreadyVisible });
+    callback({ success: true, target: alreadyVisible, foundType: itemType });
     return;
   }
 
@@ -203,7 +203,7 @@ function executeSearchFor(smartEntity, itemType, callback) {
       smartEntity.off('entityVisible', onEntityVisible);
       smartEntity.stopCurrentAction(); // Stop wandering
       console.log(`✅ ${smartEntity.type} found ${itemType} at ${entity.type} (${entity.x.toFixed(0)}, ${entity.y.toFixed(0)})`);
-      callback({ success: true, target: entity });
+      callback({ success: true, target: entity, foundType: itemType });
     }
   };
 

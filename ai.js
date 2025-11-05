@@ -207,6 +207,20 @@ function buildPrompt(entity, entities, context = {}) {
   const state = getAIState(entity);
   const visible = entity.getVisibleEntities();
 
+  // Build context message (why are we asking for a decision?)
+  let contextMessage = '';
+  if (context.actionCompleted && context.lastAction) {
+    const result = context.lastResult?.success ? 'succeeded' : 'failed';
+    contextMessage = `\nLast action: ${context.lastAction} ${result}`;
+    if (context.lastAction === 'searchFor' && context.lastResult?.success) {
+      contextMessage += ` (found ${context.lastResult.foundType || 'target'})`;
+    }
+  } else if (context.newEntityVisible) {
+    contextMessage = `\nNew: ${context.newEntityVisible.type} now visible`;
+  } else if (context.needBecameCritical) {
+    contextMessage = `\nAlert: critical need detected`;
+  }
+
   // Translate needs to words (only include if not fine)
   const needs = {
     food: entity.food,
@@ -248,6 +262,7 @@ function buildPrompt(entity, entities, context = {}) {
   // Build minimal prompt (words only, no numbers)
   let prompt = `You are Lira — practical and cautious but kind.
 Assume commonsense. Treat the need words as literal state tags (not storytelling).
+${contextMessage}
 
 Situation: ${timeDescription}. Goal: survive and thrive.
 Needs: ${needsLine}
@@ -258,27 +273,52 @@ Nearby: ${nearbyLine}`;
     prompt += `\nMemory: ${memoryLine}`;
   }
 
+  // Filter available actions based on current state
+  const availableActions = [];
+
+  // Always available
+  availableActions.push('- searchFor: {"name":"searchFor","args":{"itemType":"apple"|"berry"|"stick"|"bonfire"}}\n  → Find item type if not visible');
+  availableActions.push('- moveTo: {"name":"moveTo","args":{"target":"<type>"}}\n  → Walk to visible entity');
+  availableActions.push('- wander: {"name":"wander","args":{}}\n  → Explore randomly');
+
+  // collect - only if inventory not full and collectibles visible
+  if (!entity.inventory.isFull()) {
+    const hasCollectibles = visible.some(e =>
+      ['tree', 'grass', 'stick', 'apple', 'berry'].includes(e.type)
+    );
+    if (hasCollectibles) {
+      availableActions.push('- collect: {"name":"collect","args":{"target":"<type>","itemType":"<type>"}}\n  → Get item (tree→apple, grass→berry, stick→stick)');
+    }
+  }
+
+  // addFuel - only if has sticks and bonfire visible
+  if (entity.inventory.hasItem('stick')) {
+    const bonfireVisible = visible.some(e => e.type === 'bonfire');
+    if (bonfireVisible) {
+      availableActions.push('- addFuel: {"name":"addFuel","args":{}}\n  → Add stick to bonfire');
+    }
+  }
+
+  // eat - only if has food
+  const hasApple = entity.inventory.hasItem('apple');
+  const hasBerry = entity.inventory.hasItem('berry');
+  if (hasApple || hasBerry) {
+    const foodTypes = [];
+    if (hasApple) foodTypes.push('"apple"');
+    if (hasBerry) foodTypes.push('"berry"');
+    availableActions.push(`- eat: {"name":"eat","args":{"foodType":${foodTypes.join('|')}}}\n  → Consume food from inventory`);
+  }
+
+  // sleep - only if tired
+  if (entity.energy < 80) {
+    availableActions.push('- sleep: {"name":"sleep","args":{}}\n  → Rest to restore energy');
+  }
+
   prompt += `
 Constraints: carry up to two items max.
 
-Actions (use entity TYPES, system picks nearest and navigates automatically):
-- searchFor: {"name":"searchFor","args":{"itemType":"apple"|"berry"|"stick"|"bonfire"}}
-  → Wanders to find item type if not visible
-- moveTo: {"name":"moveTo","args":{"target":"<type>"}}
-  → Walks to nearest entity of type (useful for positioning, warming by fire, etc.)
-- collect: {"name":"collect","args":{"target":"<type>","itemType":"<type>"}}
-  → Gets item from source (auto-navigates if needed, then collects)
-  → target: "tree" (apples), "grass" (berries), "stick" (ground sticks)
-  → REQUIRES: target visible, inventory not full
-- addFuel: {"name":"addFuel","args":{}}
-  → Adds stick to bonfire (auto-navigates to bonfire if needed)
-  → REQUIRES: stick in inventory, bonfire visible
-- eat: {"name":"eat","args":{"foodType":"apple"|"berry"}}
-  → Eats food from inventory (REQUIRES: food in inventory)
-- sleep: {"name":"sleep","args":{}}
-  → Rests to restore energy
-- wander: {"name":"wander","args":{}}
-  → Explores randomly
+Available actions right now:
+${availableActions.join('\n')}
 
 Respond only with strict JSON:
 {
