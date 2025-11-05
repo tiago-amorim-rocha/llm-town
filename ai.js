@@ -221,6 +221,25 @@ function buildPrompt(entity, entities, context = {}) {
     contextMessage = `\nAlert: critical need detected`;
   }
 
+  // Add recent action history (last 5 actions for pattern recognition)
+  let historyMessage = '';
+  if (state.actionHistory.length > 0) {
+    const recentActions = state.actionHistory.slice(-5).map(action => {
+      const status = action.result.success ? '✓' : '✗';
+      let desc = `${status} ${action.name}`;
+
+      // Add relevant details
+      if (action.name === 'searchFor' && action.result.success) {
+        desc += ` (found ${action.result.foundType || 'target'})`;
+      } else if (!action.result.success && action.result.reason) {
+        desc += ` (${action.result.reason})`;
+      }
+
+      return desc;
+    });
+    historyMessage = `\nRecent actions: ${recentActions.join(', ')}`;
+  }
+
   // Translate needs to words (only include if not fine)
   const needs = {
     food: entity.food,
@@ -262,7 +281,7 @@ function buildPrompt(entity, entities, context = {}) {
   // Build minimal prompt (words only, no numbers)
   let prompt = `You are Lira — practical and cautious but kind.
 Assume commonsense. Treat the need words as literal state tags (not storytelling).
-${contextMessage}
+${contextMessage}${historyMessage}
 
 Situation: ${timeDescription}. Goal: survive and thrive.
 Needs: ${needsLine}
