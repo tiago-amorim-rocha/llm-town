@@ -238,7 +238,23 @@ function buildPrompt(entity, entities, context = {}) {
       contextMessage += ` (found ${context.lastResult.foundType || 'target'})`;
     }
   } else if (context.newEntityVisible) {
-    contextMessage = `\nNew: ${context.newEntityVisible.type} now visible`;
+    const newEntity = context.newEntityVisible;
+    contextMessage = `\nNew: ${newEntity.type} now visible`;
+
+    // Add relevance to current goal if applicable
+    if (state.currentIntent) {
+      if (newEntity.type === 'tree' && state.currentIntent.includes('food')) {
+        contextMessage += ` (can provide apples)`;
+      } else if (newEntity.type === 'grass' && state.currentIntent.includes('food')) {
+        contextMessage += ` (can provide berries)`;
+      } else if (newEntity.type === 'tree' && state.currentIntent.includes('fuel')) {
+        contextMessage += ` (can provide sticks)`;
+      } else if (newEntity.type === 'bonfire' && (state.currentIntent.includes('warm') || state.currentIntent.includes('sleep') || state.currentIntent.includes('rest'))) {
+        contextMessage += ` (relevant to your goal)`;
+      } else if (newEntity.type === 'wolf') {
+        contextMessage += ` ⚠️ THREAT`;
+      }
+    }
   } else if (context.needBecameCritical) {
     contextMessage = `\nAlert: critical need detected`;
   }
