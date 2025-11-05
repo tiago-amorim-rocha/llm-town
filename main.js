@@ -920,7 +920,6 @@ async function init() {
   initRespawnButton();
   initActionMenu();
   initAIToggleButton();
-  showReloadButton(); // TEMPORARILY ALWAYS SHOW FOR TESTING
   setInterval(checkForNewVersion, VERSION_CHECK_INTERVAL);
 
   canvas = document.createElement('div');
