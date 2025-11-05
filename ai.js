@@ -259,23 +259,22 @@ Nearby: ${nearbyLine}`;
   }
 
   prompt += `
-Constraints: interact only at hand; carry up to two items.
+Constraints: carry up to two items max.
 
-IMPORTANT: "at hand" = can interact, "nearby"/"far" = must moveTo first!
-
-Actions (use entity TYPES, system picks nearest):
+Actions (use entity TYPES, system picks nearest and navigates automatically):
 - searchFor: {"name":"searchFor","args":{"itemType":"apple"|"berry"|"stick"|"bonfire"}}
-  → Wanders to find item type
+  → Wanders to find item type if not visible
 - moveTo: {"name":"moveTo","args":{"target":"<type>"}}
-  → Walks to nearest entity of type (e.g., "bonfire", "tree", "stick")
+  → Walks to nearest entity of type (useful for positioning, warming by fire, etc.)
 - collect: {"name":"collect","args":{"target":"<type>","itemType":"<type>"}}
-  → Picks up item (REQUIRES: source "at hand", inventory not full)
-  → target can be "tree" (for apples), "grass" (for berries), "stick" (for sticks)
+  → Gets item from source (auto-navigates if needed, then collects)
+  → target: "tree" (apples), "grass" (berries), "stick" (ground sticks)
+  → REQUIRES: target visible, inventory not full
 - addFuel: {"name":"addFuel","args":{}}
-  → Adds stick to bonfire (REQUIRES: stick in inventory AND bonfire "at hand")
-  → If bonfire is "nearby" or "far", must moveTo it first!
+  → Adds stick to bonfire (auto-navigates to bonfire if needed)
+  → REQUIRES: stick in inventory, bonfire visible
 - eat: {"name":"eat","args":{"foodType":"apple"|"berry"}}
-  → Consumes food from inventory (REQUIRES: food in inventory)
+  → Eats food from inventory (REQUIRES: food in inventory)
 - sleep: {"name":"sleep","args":{}}
   → Rests to restore energy
 - wander: {"name":"wander","args":{}}
@@ -290,8 +289,8 @@ Respond only with strict JSON:
 }
 
 Examples:
-- Bonfire nearby, stick in inventory: {"intent":"add fuel","plan":["go to bonfire","add fuel"],"next_action":{"name":"moveTo","args":{"target":"bonfire"}},"bubble":{"text":"heading to fire","emoji":"🔥"}}
-- Stick at hand, need fuel: {"intent":"get fuel","plan":["collect stick"],"next_action":{"name":"collect","args":{"target":"stick","itemType":"stick"}},"bubble":{"text":"getting stick","emoji":"🪵"}}`;
+- Need fuel, bonfire visible, stick visible: {"intent":"fuel fire","plan":["collect stick","add to bonfire"],"next_action":{"name":"collect","args":{"target":"stick","itemType":"stick"}},"bubble":{"text":"getting stick","emoji":"🪵"}}
+- Stick in inventory, bonfire visible: {"intent":"add fuel","plan":["add fuel"],"next_action":{"name":"addFuel","args":{}},"bubble":{"text":"fueling fire","emoji":"🔥"}}`;
 
   return prompt;
 }
