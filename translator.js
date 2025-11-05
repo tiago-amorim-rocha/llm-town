@@ -212,7 +212,7 @@ export function translateNearbyEntities(visibleEntities, characterEntity, needs)
     t.entity = entity; // Keep reference to original entity
 
     // Boost priority based on dominant need
-    if (dominantNeed === 'food' && (entity.type === 'apple' || entity.type === 'berry' || entity.type === 'tree')) {
+    if (dominantNeed === 'food' && (entity.type === 'apple' || entity.type === 'berry' || entity.type === 'tree' || entity.type === 'grass')) {
       t.priority += 50;
     }
     if (dominantNeed === 'warmth' && entity.type === 'bonfire') {
