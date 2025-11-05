@@ -936,6 +936,17 @@ async function init() {
   initScene();
   console.log(`✅ Scene initialized (${entities.length} entities)`);
 
+  // Enable AI by default and trigger initial decision
+  if (characterEntity) {
+    ai.enableAI(characterEntity);
+    console.log('🧠 Manual LLM Mode active - AI enabled by default');
+
+    // Trigger initial decision after a short delay (let scene render first)
+    setTimeout(() => {
+      ai.triggerDecision(characterEntity, entities, {});
+    }, 500);
+  }
+
   // Start game loop using requestAnimationFrame for smooth 60fps
   requestAnimationFrame(gameLoop);
 

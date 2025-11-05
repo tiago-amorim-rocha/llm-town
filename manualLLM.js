@@ -8,7 +8,7 @@ import * as entityRegistry from './entityRegistry.js';
 // STATE
 // ============================================================
 
-let isManualModeEnabled = false;
+let isManualModeEnabled = true; // Always enabled by default
 let pendingDecision = null; // { entity, entities, context, prompt, resolve, reject }
 
 // ============================================================
@@ -20,21 +20,8 @@ export function isManualMode() {
 }
 
 export function setManualMode(enabled) {
-  isManualModeEnabled = enabled;
-  const button = document.getElementById('manual-mode-button');
-
-  if (button) {
-    if (enabled) {
-      button.classList.add('enabled');
-      button.title = 'Manual Mode ON - Click when pulsing to decide';
-    } else {
-      button.classList.remove('enabled');
-      button.classList.remove('decision-needed');
-      button.title = 'Manual LLM Mode - Act as the AI';
-    }
-  }
-
-  console.log(`🧠 Manual LLM Mode: ${enabled ? 'ENABLED' : 'DISABLED'}`);
+  // Manual mode is always enabled now, but keep function for compatibility
+  isManualModeEnabled = true;
 }
 
 /**
@@ -111,9 +98,7 @@ function hidePulse() {
   const manualButton = document.getElementById('manual-mode-button');
   if (manualButton) {
     manualButton.classList.remove('decision-needed');
-    manualButton.title = isManualModeEnabled
-      ? 'Manual Mode ON - Click when pulsing to decide'
-      : 'Manual LLM Mode - Act as the AI';
+    manualButton.title = 'Click to make a decision';
   }
 }
 
@@ -341,24 +326,16 @@ export function initManualLLMMode(triggerDecisionCallback) {
   // Store callback for triggering decisions
   window.__triggerManualDecision = triggerDecisionCallback;
 
-  // Manual mode button
+  // Manual mode button - ONLY opens decision panel (no toggle)
   const manualButton = document.getElementById('manual-mode-button');
 
   if (manualButton) {
     manualButton.addEventListener('click', () => {
-      // If decision is pending, show the decision panel
+      // Only show decision panel if decision is pending
       if (pendingDecision) {
         showDecisionPanel();
       } else {
-        // Toggle manual mode on/off
-        const newState = !isManualModeEnabled;
-        setManualMode(newState);
-
-        // If enabling manual mode, trigger initial decision
-        if (newState && triggerDecisionCallback) {
-          console.log('🧠 Manual mode enabled, triggering initial decision...');
-          triggerDecisionCallback();
-        }
+        console.log('🧠 No decision pending yet');
       }
     });
   }
