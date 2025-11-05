@@ -111,8 +111,8 @@ export function shouldTriggerDecision(entity, context = {}) {
     return false;
   }
 
-  // Rate limiting
-  if (!canMakeCall(entity)) {
+  // Rate limiting (exempt action completions - they always need follow-up)
+  if (!context.actionCompleted && !canMakeCall(entity)) {
     return false;
   }
 
@@ -768,14 +768,25 @@ async function executeAction(decision, entity, entities) {
 export async function triggerDecision(entity, entities, context = {}) {
   // Check if we should make a decision
   if (!shouldTriggerDecision(entity, context)) {
+    // Debug: log why decision was not triggered
+    if (context.actionCompleted) {
+      console.log('⚠️ Action completed but decision not triggered. Checking why...');
+      const state = getAIState(entity);
+      console.log('  - AI enabled:', state.enabled);
+      console.log('  - isPending:', state.isPending);
+      console.log('  - isDead:', entity.isDead);
+      console.log('  - canMakeCall:', canMakeCall(entity));
+    }
     return;
   }
 
   const state = getAIState(entity);
 
   try {
-    // Record the call for rate limiting
-    recordCall(entity);
+    // Record the call for rate limiting (unless action completion)
+    if (!context.actionCompleted) {
+      recordCall(entity);
+    }
 
     // Mark as pending to prevent parallel calls
     state.isPending = true;
