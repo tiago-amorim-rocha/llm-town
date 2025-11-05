@@ -11,6 +11,7 @@
 import * as config from './config.js';
 import { distance } from './utils.js';
 import { getInGameTime, formatInGameTime } from './cycle.js';
+import * as translator from './translator.js';
 
 // ============================================================
 // CONFIGURATION
@@ -188,205 +189,94 @@ export function shouldTriggerDecision(entity, context = {}) {
     }
   }
 
+  // Required heartbeat (every in-game hour)
+  // Skip if recently called for other reasons or if sleeping
+  const timeSinceLastCall = Date.now() - state.lastCallTime;
+  if (timeSinceLastCall >= config.HEARTBEAT_INTERVAL && !entity.isSleeping) {
+    return true;
+  }
+
   return false;
 }
 
 // ============================================================
-// PROMPT BUILDING
+// PROMPT BUILDING (minimal, words-first)
 // ============================================================
-
-function formatNeed(value, criticalThreshold) {
-  let emoji = '🟢';
-  let status = '';
-
-  if (value < criticalThreshold) {
-    emoji = '🔴';
-    status = ' CRITICAL';
-  } else if (value < 50) {
-    emoji = '🟡';
-    status = ' LOW';
-  }
-
-  return `${emoji} ${Math.round(value)}/100${status}`;
-}
-
-function formatEntity(entity, characterEntity) {
-  const dist = Math.round(distance(characterEntity.x, characterEntity.y, entity.x, entity.y));
-  let details = `${entity.type} (${dist}px away`;
-
-  // Add inventory info if entity has items
-  if (entity.inventory && entity.inventory.items.length > 0) {
-    const items = entity.inventory.items.map(item => item.type);
-    const itemCounts = {};
-    items.forEach(item => {
-      itemCounts[item] = (itemCounts[item] || 0) + 1;
-    });
-    const itemList = Object.entries(itemCounts).map(([item, count]) =>
-      count > 1 ? `${count} ${item}s` : item
-    ).join(', ');
-    details += `, has: ${itemList}`;
-  }
-
-  // Add fuel info for bonfire
-  if (entity.type === 'bonfire' && entity.fuel !== undefined) {
-    const fuelPercent = Math.round((entity.fuel / entity.maxFuel) * 100);
-    let fuelStatus = '';
-    if (fuelPercent < 20) fuelStatus = ' 🔴 DYING';
-    else if (fuelPercent < 50) fuelStatus = ' 🟡 LOW';
-    details += `, fuel: ${Math.round(entity.fuel)}/${entity.maxFuel}${fuelStatus}`;
-  }
-
-  details += ')';
-  return details;
-}
-
-function getActionAvailability(entity, entities) {
-  const availability = {
-    collect: entity.inventory.isFull() ? '❌ Inventory full (2/2)' : '✅ Available',
-    drop: entity.inventory.isEmpty() ? '❌ Inventory empty' : '✅ Available',
-    eat: entity.inventory.items.some(i => i.type === 'apple' || i.type === 'berry') ? '✅ Available' : '❌ No food',
-    sleep: entity.energy < 90 ? '✅ Available' : '⚠️ Not tired',
-    addFuel: '❌ Not near bonfire or no sticks',
-    moveTo: '✅ Available',
-    searchFor: '✅ Available',
-    wander: '✅ Available'
-  };
-
-  // Check addFuel availability
-  const hasSticks = entity.inventory.hasItem('stick');
-  const bonfire = entities.find(e => e.type === 'bonfire');
-  if (bonfire) {
-    const distToBonfire = distance(entity.x, entity.y, bonfire.x, bonfire.y);
-    if (hasSticks && distToBonfire <= config.COLLECTION_RANGE) {
-      availability.addFuel = '✅ Available';
-    } else if (!hasSticks) {
-      availability.addFuel = '❌ No sticks in inventory';
-    } else {
-      availability.addFuel = `❌ Too far (${Math.round(distToBonfire)}px, need <${config.COLLECTION_RANGE}px)`;
-    }
-  }
-
-  return availability;
-}
 
 function buildPrompt(entity, entities, context = {}) {
   const state = getAIState(entity);
   const visible = entity.getVisibleEntities();
-  const remembered = Array.from(entity.memory.discovered.values());
-  const availability = getActionAvailability(entity, entities);
-  const timeStr = formatInGameTime();
-  const gameTime = getInGameTime();
 
-  // Recent history (last 5 actions)
-  const recentHistory = state.actionHistory.slice(-5);
+  // Translate needs to words (only include if not fine)
+  const needs = {
+    food: entity.food,
+    energy: entity.energy,
+    warmth: entity.warmth,
+    health: entity.hp
+  };
 
-  let prompt = `You are Lira, a survivor in a harsh wilderness. You must manage your needs to stay alive.
+  const needWords = [];
+  const foodWord = translator.translateNeed(needs.food, 'food');
+  const energyWord = translator.translateNeed(needs.energy, 'energy');
+  const warmthWord = translator.translateNeed(needs.warmth, 'warmth');
+  const healthWord = translator.translateNeed(needs.health, 'health');
 
-CURRENT SITUATION:
-- Food: ${formatNeed(entity.food, 30)} (lose HP if < 30, regenerate HP if > 50)
-- Warmth: ${formatNeed(entity.warmth, 30)} (lose HP if < 30, regenerate HP if > 50)
-- Energy: ${formatNeed(entity.energy, 30)} (can't run if < 30, half speed if < 15, forced sleep if < 5, regenerate HP if > 50)
-- HP: ${Math.round(entity.hp)}/100 ${entity.hp < 30 ? '🔴 CRITICAL' : entity.hp < 50 ? '🟡 LOW' : '🟢'}
+  if (foodWord) needWords.push(`food ${foodWord}`);
+  if (energyWord) needWords.push(`energy ${energyWord}`);
+  if (warmthWord) needWords.push(`warmth ${warmthWord}`);
+  if (healthWord) needWords.push(`health ${healthWord}`);
 
-TIME: ${timeStr} (${gameTime.phase})
+  const needsLine = needWords.length > 0 ? needWords.join(', ') : 'all fine';
 
-INVENTORY (${entity.inventory.items.length}/2): ${entity.inventory.items.map(i => i.type).join(', ') || 'empty'}
+  // Translate time
+  const timeDescription = translator.translateTime();
 
-WHAT YOU SEE RIGHT NOW:`;
+  // Translate inventory
+  const inventoryLine = entity.inventory.items.length > 0
+    ? entity.inventory.items.map(i => i.type).join(', ')
+    : 'empty';
 
-  if (visible.length === 0) {
-    prompt += '\n- Nothing nearby (explore to find resources)';
-  } else {
-    visible.forEach(e => {
-      prompt += `\n- ${formatEntity(e, entity)}`;
-    });
+  // Translate nearby entities (max 3, ranked by relevance)
+  const nearbyDescriptions = translator.translateNearbyEntities(visible, entity, needs);
+  const nearbyLine = nearbyDescriptions.length > 0
+    ? nearbyDescriptions.join('; ')
+    : 'nothing visible';
+
+  // Translate memory (simple: bonfire location if not visible)
+  const memoryLine = translator.translateMemory(visible, entity.memory.discovered);
+
+  // Build minimal prompt (words only, no numbers)
+  let prompt = `You are Lira — practical and cautious but kind.
+Assume commonsense. Treat the need words as literal state tags (not storytelling).
+
+Situation: ${timeDescription}. Goal: survive and thrive.
+Needs: ${needsLine}
+Inventory: ${inventoryLine}
+Nearby: ${nearbyLine}`;
+
+  if (memoryLine) {
+    prompt += `\nMemory: ${memoryLine}`;
   }
 
-  // Add remembered locations (limit to last 2 in-game days)
-  const twoDaysMs = 2 * 24 * 3600 * 1000 / config.TIME_MULTIPLIER; // Convert 2 in-game days to real ms
-  const recentMemories = remembered.filter(m => Date.now() - m.lastSeen < twoDaysMs);
+  prompt += `
+Constraints: interact only at hand; carry up to two items.
 
-  if (recentMemories.length > 0) {
-    prompt += '\n\nREMEMBERED LOCATIONS (not visible now, but you know where they were):';
-    recentMemories.forEach(mem => {
-      const timeSince = Math.round((Date.now() - mem.lastSeen) / 1000);
-      const direction = getDirection(entity.x, entity.y, mem.x, mem.y);
-      const dist = Math.round(mem.distance);
-      prompt += `\n- ${mem.type} (~${dist}px ${direction}, seen ${timeSince}s ago)`;
-    });
-  }
+Allowed actions:
+searchFor('apple'|'berry'|'stick'|'bonfire')
+moveTo(id)
+collect(id,'apple'|'berry'|'stick')
+addFuel('bon1')
+eat('apple'|'berry')
+sleep()
+wander()
 
-  if (recentHistory.length > 0) {
-    prompt += '\n\nRECENT ACTIONS:';
-    recentHistory.forEach(action => {
-      const emoji = action.result?.success ? '✅' : '❌';
-      prompt += `\n${emoji} ${action.name}(${JSON.stringify(action.args).slice(1, -1)})`;
-      if (!action.result?.success && action.result?.reason) {
-        prompt += ` - ${action.result.reason}`;
-      }
-    });
-  }
-
-  if (state.currentIntent) {
-    prompt += `\n\nCURRENT PLAN: ${state.currentIntent}`;
-    if (state.currentPlan.length > 0) {
-      prompt += `\nSteps: ${state.currentPlan.join(' → ')}`;
-    }
-  }
-
-  prompt += `\n\nAVAILABLE ACTIONS:
-- collect(target, itemType): ${availability.collect}
-  Collect apple/berry/stick from target entity. Must be within 50px. Takes time.
-
-- drop(itemType): ${availability.drop}
-  Drop item from inventory onto ground. Instant.
-
-- eat(foodType): ${availability.eat}
-  Eat apple or berry. Restores +40 food instantly.
-
-- moveTo(target): ${availability.moveTo}
-  Move directly to visible target or remembered location. Auto-runs if energy > 30.
-
-- searchFor(itemType): ${availability.searchFor}
-  Wander around searching for: apple, berry, stick, or bonfire. Takes ~80 in-game minutes.
-
-- addFuel(bonfire): ${availability.addFuel}
-  Add stick to bonfire for +20 fuel. Must be within 50px and have stick.
-
-- sleep(): ${availability.sleep}
-  Sleep until energy reaches 90. Restores energy fast. Wakes if HP < 20.
-
-- wander(): ✅ Available
-  Wander randomly. Use when exploring.
-
-CRITICAL REMINDERS:
-- HP regenerates ONLY when all needs > 50 (food, warmth, energy)
-- Bonfire provides warmth within 100px radius
-- Collecting takes time (24 min for apple, 20 min for berry)
-- You can remember locations you've seen before
-
-RESPONSE FORMAT (JSON only):
+Respond only with strict JSON:
 {
-  "intent": "one sentence describing your goal",
-  "plan": ["step1", "step2", "step3"],
-  "next_action": {
-    "name": "actionName",
-    "args": {"param": "value"}
-  },
-  "bubble": {
-    "text": "max 8 words showing your thought",
-    "emoji": "one emoji"
-  }
-}
-
-Examples:
-- moveTo with visible: {"name": "moveTo", "args": {"target": "tree"}}
-- moveTo with memory: {"name": "moveTo", "args": {"target": "bonfire", "useMemory": true}}
-- collect: {"name": "collect", "args": {"target": "tree", "itemType": "apple"}}
-- searchFor: {"name": "searchFor", "args": {"itemType": "bonfire"}}
-- eat: {"name": "eat", "args": {"foodType": "apple"}}
-
-What do you do next?`;
+  "intent": "<short goal>",
+  "plan": ["<step1>", "<step2>", "<step3>"],
+  "next_action": {"name":"...","args":{...}},
+  "bubble": {"text":"<≤8 words>","emoji":"<one>"}
+}`;
 
   return prompt;
 }
@@ -582,14 +472,16 @@ async function executeAction(decision, entity, entities) {
   // Validate action
   const validation = validateAction(next_action, entity, entities);
   if (!validation.valid) {
-    console.error(`❌ Invalid action: ${validation.reason}`);
+    const error = new Error(`Invalid action: ${validation.reason}`);
+    console.error(`❌ ${error.message}`);
+    console.error('Action:', next_action);
     state.actionHistory.push({
       name: next_action.name,
       args: next_action.args,
       result: { success: false, reason: validation.reason },
       timestamp: Date.now()
     });
-    return;
+    throw error;
   }
 
   // Resolve target if needed
@@ -597,14 +489,16 @@ async function executeAction(decision, entity, entities) {
   if (next_action.args.target) {
     target = resolveTarget(next_action.args.target, entity, entities);
     if (!target) {
-      console.error(`❌ Target not found: ${next_action.args.target}`);
+      const error = new Error(`Target not found: ${next_action.args.target}`);
+      console.error(`❌ ${error.message}`);
+      console.error('Action:', next_action);
       state.actionHistory.push({
         name: next_action.name,
         args: next_action.args,
         result: { success: false, reason: 'target_not_found' },
         timestamp: Date.now()
       });
-      return;
+      throw error;
     }
   }
 
@@ -704,8 +598,7 @@ export async function triggerDecision(entity, entities, context = {}) {
     // Parse response
     const parseResult = parseResponse(responseText);
     if (!parseResult.success) {
-      console.error('❌ Failed to parse LLM response');
-      return;
+      throw new Error(`Failed to parse LLM response: ${parseResult.error}`);
     }
 
     const decision = parseResult.data;
@@ -716,9 +609,10 @@ export async function triggerDecision(entity, entities, context = {}) {
 
   } catch (error) {
     console.error('❌ AI Decision Error:', error);
-
-    // Fallback: do nothing, just warn
-    console.warn('⚠️ AI disabled due to error. Entity will remain idle.');
+    console.error('Entity:', entity.id, 'at', { x: entity.x, y: entity.y });
+    console.error('Stack trace:', error.stack);
+    // Don't suppress errors - let them be visible in console
+    throw error;
   }
 }
 

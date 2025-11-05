@@ -110,6 +110,47 @@ export const BERRY_COLLECTION_TIME = time.inGameMinutesToRealMs(BERRY_COLLECTION
 export const MAX_INVENTORY_SIZE = 2;         // Maximum items character can carry
 
 // ============================================================
+// LLM PROMPT - NEED THRESHOLDS
+// ============================================================
+
+// 5-tier word-based need thresholds (no numbers in prompts)
+// Tier 1 (>75%): fine (omitted from prompt)
+// Tier 2 (50-75%): "a little [hungry/tired/cold/hurt]"
+// Tier 3 (25-50%): "[hungry/tired/cold/hurt]"
+// Tier 4 (10-25%): "very [hungry/tired/cold/hurt]"
+// Tier 5 (≤10%): "[starving/exhausted/freezing/critical]"
+
+export const NEED_THRESHOLDS = {
+  TIER_1: 75,  // Fine (omit from prompt)
+  TIER_2: 50,  // "a little X"
+  TIER_3: 25,  // "X"
+  TIER_4: 10,  // "very X"
+  TIER_5: 0    // Critical state
+};
+
+// Distance thresholds for word-based distances
+export const DISTANCE_THRESHOLDS = {
+  AT_HAND: 50,    // ≤50px: "at hand"
+  NEARBY: 120,    // 51-120px: "nearby"
+  FAR: Infinity   // >120px: "far"
+};
+
+// Bonfire fuel thresholds
+export const BONFIRE_FUEL_THRESHOLDS = {
+  BLAZE: 90,     // ≥90: "blaze"
+  STRONG: 70,    // 70-89: "strong"
+  LOW: 30,       // 30-69: "low"
+  FADING: 0      // <30: "fading"
+};
+
+// LLM prompt settings
+export const NEARBY_ENTITY_CAP = 3;  // Max 3 useful entities in prompt
+
+// LLM heartbeat settings (in in-game hours)
+const HEARTBEAT_INTERVAL_HOURS = 1;  // Required heartbeat every 1 in-game hour
+export const HEARTBEAT_INTERVAL = time.inGameHoursToRealMs(HEARTBEAT_INTERVAL_HOURS);
+
+// ============================================================
 // VERSION CHECKING
 // ============================================================
 

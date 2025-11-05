@@ -1,0 +1,255 @@
+// ============================================================
+// TRANSLATOR MODULE
+// ============================================================
+// Converts engine state (numbers) to words for LLM prompts
+// No numbers in prompts - words only!
+
+import {
+  NEED_THRESHOLDS,
+  DISTANCE_THRESHOLDS,
+  BONFIRE_FUEL_THRESHOLDS,
+  NEARBY_ENTITY_CAP
+} from './config.js';
+import { getInGameTime } from './cycle.js';
+
+// ============================================================
+// NEED TRANSLATION (4-tier system)
+// ============================================================
+
+/**
+ * Translate need value to word-based description
+ * @param {number} value - Need value (0-100)
+ * @param {string} needType - 'food', 'energy', 'warmth', 'health'
+ * @returns {string|null} - Word description or null if fine
+ */
+export function translateNeed(value, needType) {
+  const words = {
+    food: ['a little hungry', 'hungry', 'very hungry', 'starving'],
+    energy: ['a little tired', 'tired', 'very tired', 'exhausted'],
+    warmth: ['a little cold', 'cold', 'very cold', 'freezing'],
+    health: ['a little hurt', 'hurt', 'badly hurt', 'critical']
+  };
+
+  if (value > NEED_THRESHOLDS.TIER_1) return null; // Fine, omit from prompt
+  if (value > NEED_THRESHOLDS.TIER_2) return words[needType][0]; // "a little X"
+  if (value > NEED_THRESHOLDS.TIER_3) return words[needType][1]; // "X"
+  if (value > NEED_THRESHOLDS.TIER_4) return words[needType][2]; // "very X"
+  return words[needType][3]; // Critical state
+}
+
+// ============================================================
+// DISTANCE TRANSLATION
+// ============================================================
+
+/**
+ * Translate pixel distance to word-based description
+ * @param {number} distance - Distance in pixels
+ * @returns {string} - "at hand", "nearby", or "far"
+ */
+export function translateDistance(distance) {
+  if (distance <= DISTANCE_THRESHOLDS.AT_HAND) return 'at hand';
+  if (distance <= DISTANCE_THRESHOLDS.NEARBY) return 'nearby';
+  return 'far';
+}
+
+// ============================================================
+// BONFIRE FUEL TRANSLATION
+// ============================================================
+
+/**
+ * Translate bonfire fuel level to word-based description
+ * @param {number} fuel - Fuel level (0-100)
+ * @returns {string} - "blaze", "strong", "low", or "fading"
+ */
+export function translateBonfireFuel(fuel) {
+  if (fuel >= BONFIRE_FUEL_THRESHOLDS.BLAZE) return 'blaze';
+  if (fuel >= BONFIRE_FUEL_THRESHOLDS.STRONG) return 'strong';
+  if (fuel >= BONFIRE_FUEL_THRESHOLDS.LOW) return 'low';
+  return 'fading';
+}
+
+// ============================================================
+// TIME TRANSLATION
+// ============================================================
+
+/**
+ * Translate current game time to simple time description
+ * @returns {string} - e.g., "day (3h until dusk)" or "night (5h until dawn)"
+ */
+export function translateTime() {
+  const { phase, hour } = getInGameTime();
+
+  // Calculate hours until next transition
+  let nextTransition, hoursUntil;
+
+  if (phase === 'day') {
+    nextTransition = 'dusk';
+    hoursUntil = 8 - hour; // Day ends at hour 8
+  } else if (phase === 'dusk') {
+    nextTransition = 'night';
+    hoursUntil = 10 - hour; // Dusk ends at hour 10
+  } else if (phase === 'night') {
+    nextTransition = 'dawn';
+    hoursUntil = 22 - hour; // Night ends at hour 22
+  } else { // dawn
+    nextTransition = 'day';
+    hoursUntil = 24 - hour; // Dawn ends at hour 24 (0)
+  }
+
+  return `${phase} (${hoursUntil}h until ${nextTransition})`;
+}
+
+// ============================================================
+// ENTITY TRANSLATION
+// ============================================================
+
+/**
+ * Translate entity to prompt-friendly description
+ * @param {Entity} entity - The entity to describe
+ * @param {Entity} characterEntity - The character (for distance calculation)
+ * @returns {object} - {description, distance, distanceWord, priority}
+ */
+export function translateEntity(entity, characterEntity) {
+  const dx = entity.x - characterEntity.x;
+  const dy = entity.y - characterEntity.y;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+  const distanceWord = translateDistance(distance);
+
+  let description = '';
+  let priority = 0; // Higher = more important for current needs
+
+  // Format based on entity type
+  if (entity.type === 'tree') {
+    const items = [];
+    if (entity.apples > 0) items.push(`${entity.apples} apples`);
+    if (entity.berries > 0) items.push(`${entity.berries} berries`);
+    if (entity.sticks > 0) items.push(`${entity.sticks} sticks`);
+
+    if (items.length > 0) {
+      description = `tree @${entity.id} (${distanceWord}, has: ${items.join(', ')})`;
+    } else {
+      description = `tree @${entity.id} (${distanceWord}, empty)`;
+    }
+  } else if (entity.type === 'bonfire') {
+    const fuelWord = translateBonfireFuel(entity.fuel);
+    description = `bonfire @${entity.id} (${distanceWord}, fuel: ${fuelWord})`;
+    priority = 10; // Bonfire is always important
+  } else if (entity.type === 'apple' || entity.type === 'berry' || entity.type === 'stick') {
+    description = `${entity.type} @${entity.id} (${distanceWord})`;
+  } else if (entity.type === 'wolf') {
+    description = `WOLF @${entity.id} (${distanceWord}) ⚠️`;
+    priority = 100; // Threats are highest priority
+  } else {
+    description = `${entity.type} @${entity.id} (${distanceWord})`;
+  }
+
+  return { description, distance, distanceWord, priority };
+}
+
+// ============================================================
+// NEARBY ENTITIES (ranked and capped)
+// ============================================================
+
+/**
+ * Get top N nearby entities, ranked by relevance to current needs
+ * @param {Entity[]} visibleEntities - All visible entities
+ * @param {Entity} characterEntity - The character
+ * @param {object} needs - Current needs {food, energy, warmth, health}
+ * @returns {string[]} - Array of entity descriptions (max NEARBY_ENTITY_CAP)
+ */
+export function translateNearbyEntities(visibleEntities, characterEntity, needs) {
+  // Determine dominant need (lowest value)
+  let dominantNeed = 'food';
+  let lowestValue = needs.food;
+
+  if (needs.energy < lowestValue) {
+    dominantNeed = 'energy';
+    lowestValue = needs.energy;
+  }
+  if (needs.warmth < lowestValue) {
+    dominantNeed = 'warmth';
+    lowestValue = needs.warmth;
+  }
+  if (needs.health < lowestValue) {
+    dominantNeed = 'health';
+    lowestValue = needs.health;
+  }
+
+  // Translate all entities
+  const translated = visibleEntities.map(e => translateEntity(e, characterEntity));
+
+  // Boost priority based on dominant need
+  translated.forEach(t => {
+    const entity = visibleEntities.find(e => t.description.includes(`@${e.id}`));
+
+    if (dominantNeed === 'food' && (entity.type === 'apple' || entity.type === 'berry' || entity.type === 'tree')) {
+      t.priority += 50;
+    }
+    if (dominantNeed === 'warmth' && entity.type === 'bonfire') {
+      t.priority += 50;
+    }
+    if (dominantNeed === 'energy' && entity.type === 'bonfire') {
+      t.priority += 30; // Bonfire for sleep location
+    }
+    if (entity.type === 'stick' || (entity.type === 'tree' && entity.sticks > 0)) {
+      t.priority += 20; // Sticks are always useful for bonfire
+    }
+  });
+
+  // Sort by priority DESC, then distance ASC
+  translated.sort((a, b) => {
+    if (b.priority !== a.priority) return b.priority - a.priority;
+    return a.distance - b.distance;
+  });
+
+  // Take top N
+  return translated.slice(0, NEARBY_ENTITY_CAP).map(t => t.description);
+}
+
+// ============================================================
+// MEMORY TRANSLATION
+// ============================================================
+
+/**
+ * Translate memory to simple one-line description
+ * For now: just bonfire location if not visible
+ * @param {Entity[]} visibleEntities - Currently visible entities
+ * @param {Map} rememberedLocations - Map of remembered entity locations
+ * @returns {string|null} - Memory description or null
+ */
+export function translateMemory(visibleEntities, rememberedLocations) {
+  // Check if bonfire is visible
+  const bonfireVisible = visibleEntities.some(e => e.type === 'bonfire');
+
+  if (!bonfireVisible && rememberedLocations.has('bon1')) {
+    const loc = rememberedLocations.get('bon1');
+    // Simple direction calculation (N, S, E, W, NE, NW, SE, SW)
+    const dir = getCardinalDirection(loc.x, loc.y);
+    return `remembers bonfire ${dir}`;
+  }
+
+  return null;
+}
+
+/**
+ * Helper: Get cardinal direction from character position (0,0 is assumed center)
+ * @param {number} x - Target x position
+ * @param {number} y - Target y position
+ * @returns {string} - Cardinal direction (e.g., "east", "northwest")
+ */
+function getCardinalDirection(x, y) {
+  // Assuming character is at some position and we're describing relative direction
+  // For simplicity, using absolute screen coordinates
+  const angle = Math.atan2(y, x) * 180 / Math.PI;
+
+  if (angle >= -22.5 && angle < 22.5) return 'east';
+  if (angle >= 22.5 && angle < 67.5) return 'southeast';
+  if (angle >= 67.5 && angle < 112.5) return 'south';
+  if (angle >= 112.5 && angle < 157.5) return 'southwest';
+  if (angle >= 157.5 || angle < -157.5) return 'west';
+  if (angle >= -157.5 && angle < -112.5) return 'northwest';
+  if (angle >= -112.5 && angle < -67.5) return 'north';
+  if (angle >= -67.5 && angle < -22.5) return 'northeast';
+
+  return 'unknown';
+}
