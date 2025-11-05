@@ -121,14 +121,36 @@ export function translateEntity(entity, characterEntity) {
   // Format based on entity type (no IDs - LLM uses types)
   if (entity.type === 'tree') {
     const items = [];
-    if (entity.apples > 0) items.push(`${entity.apples} apples`);
-    if (entity.berries > 0) items.push(`${entity.berries} berries`);
-    if (entity.sticks > 0) items.push(`${entity.sticks} sticks`);
+
+    // Trees store items in their inventory, not as direct properties
+    if (entity.inventory) {
+      const appleCount = entity.inventory.items.filter(item => item.type === 'apple').length;
+      const berryCount = entity.inventory.items.filter(item => item.type === 'berry').length;
+      const stickCount = entity.inventory.items.filter(item => item.type === 'stick').length;
+
+      if (appleCount > 0) items.push(`${appleCount} apples`);
+      if (berryCount > 0) items.push(`${berryCount} berries`);
+      if (stickCount > 0) items.push(`${stickCount} sticks`);
+    }
 
     if (items.length > 0) {
       description = `tree (${distanceWord}, has: ${items.join(', ')})`;
     } else {
       description = `tree (${distanceWord}, empty)`;
+    }
+  } else if (entity.type === 'grass') {
+    const items = [];
+
+    // Grass stores berries in its inventory
+    if (entity.inventory) {
+      const berryCount = entity.inventory.items.filter(item => item.type === 'berry').length;
+      if (berryCount > 0) items.push(`${berryCount} berries`);
+    }
+
+    if (items.length > 0) {
+      description = `grass (${distanceWord}, has: ${items.join(', ')})`;
+    } else {
+      description = `grass (${distanceWord}, empty)`;
     }
   } else if (entity.type === 'bonfire') {
     const fuelWord = translateBonfireFuel(entity.fuel);
@@ -189,7 +211,11 @@ export function translateNearbyEntities(visibleEntities, characterEntity, needs)
     if (dominantNeed === 'energy' && entity.type === 'bonfire') {
       t.priority += 30; // Bonfire for sleep location
     }
-    if (entity.type === 'stick' || (entity.type === 'tree' && entity.sticks > 0)) {
+    const hasSticks = entity.type === 'stick' ||
+      (entity.type === 'tree' && entity.inventory &&
+       entity.inventory.items.some(item => item.type === 'stick'));
+
+    if (hasSticks) {
       t.priority += 20; // Sticks are always useful for bonfire
     }
 
