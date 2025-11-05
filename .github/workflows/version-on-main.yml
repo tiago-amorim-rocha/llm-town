@@ -3,6 +3,10 @@ on:
   push:
     branches:
       - main
+  workflow_run:
+    workflows: ["Auto-promote Claude branch to main"]
+    types:
+      - completed
 permissions:
   contents: write
 jobs:
@@ -14,6 +18,13 @@ jobs:
 
       - name: Update version.txt
         run: |
+          # Check if version.txt was updated in the last commit
+          LAST_COMMIT_MSG=$(git log -1 --pretty=%B)
+          if [[ "$LAST_COMMIT_MSG" == "auto: update version.txt to"* ]]; then
+            echo "ℹ️ version.txt was just updated, skipping"
+            exit 0
+          fi
+
           # Generate timestamp in milliseconds
           TIMESTAMP=$(date +%s%3N)
           echo "$TIMESTAMP" > version.txt
