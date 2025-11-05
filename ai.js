@@ -418,7 +418,7 @@ Respond only with strict JSON:
 }
 
 Examples:
-- Need fuel, bonfire visible, stick visible: {"intent":"fuel fire","plan":["collect stick","add to bonfire"],"next_action":{"name":"collect","args":{"target":"stick","itemType":"stick"}},"bubble":{"text":"getting stick","emoji":"🪵"}}
+- 2 sticks visible, empty inventory: {"intent":"fuel fire","plan":["collect stick","collect stick","add to bonfire"],"next_action":{"name":"collect","args":{"target":"stick","itemType":"stick"}},"bubble":{"text":"gathering sticks","emoji":"🪵"}}
 - Stick in inventory, bonfire visible: {"intent":"add fuel","plan":["add fuel"],"next_action":{"name":"addFuel","args":{}},"bubble":{"text":"fueling fire","emoji":"🔥"}}`;
 
   return prompt;

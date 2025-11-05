@@ -209,6 +209,7 @@ export function translateNearbyEntities(visibleEntities, characterEntity, needs)
   // Translate all entities and boost priority based on dominant need
   const translated = visibleEntities.map((entity, index) => {
     const t = translateEntity(entity, characterEntity);
+    t.entity = entity; // Keep reference to original entity
 
     // Boost priority based on dominant need
     if (dominantNeed === 'food' && (entity.type === 'apple' || entity.type === 'berry' || entity.type === 'tree')) {
@@ -238,7 +239,40 @@ export function translateNearbyEntities(visibleEntities, characterEntity, needs)
   });
 
   // Take top N
-  return translated.slice(0, NEARBY_ENTITY_CAP).map(t => t.description);
+  const topEntities = translated.slice(0, NEARBY_ENTITY_CAP);
+
+  // Group identical collectible items (apples, berries, sticks with same state)
+  // This helps LLM understand it can collect multiple items in one trip
+  const grouped = new Map();
+  const descriptions = [];
+
+  for (const t of topEntities) {
+    const entity = t.entity;
+
+    // Group collectible items by type and distance word
+    if (entity && (entity.type === 'apple' || entity.type === 'berry' ||
+        (entity.type === 'stick' && entity.inventory?.hasItem('stick')))) {
+      const key = `${entity.type}_${t.distanceWord}`;
+      if (!grouped.has(key)) {
+        grouped.set(key, { type: entity.type, distanceWord: t.distanceWord, count: 0 });
+      }
+      grouped.get(key).count++;
+    } else {
+      // Non-collectibles or unique entities shown as-is
+      descriptions.push(t.description);
+    }
+  }
+
+  // Add grouped collectibles to descriptions
+  for (const [key, group] of grouped) {
+    if (group.count > 1) {
+      descriptions.push(`${group.count} ${group.type}s (${group.distanceWord})`);
+    } else {
+      descriptions.push(`${group.type} (${group.distanceWord})`);
+    }
+  }
+
+  return descriptions;
 }
 
 // ============================================================
