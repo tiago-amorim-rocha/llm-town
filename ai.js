@@ -57,7 +57,8 @@ function getAIState(entity) {
       actionHistory: [], // Keep all actions for debugging
       lastActionResult: null,
       isPending: false, // Track if LLM call is currently in progress
-      lastCycleState: null // Track last cycle phase to detect dusk/dawn transitions
+      lastCycleState: null, // Track last cycle phase to detect dusk/dawn transitions
+      justEnabled: false // Track if AI was just manually enabled
     });
   }
   return aiState.get(entity);
@@ -128,6 +129,12 @@ export function shouldTriggerDecision(entity, context = {}) {
   // Note: searching is checked separately below for smart interrupts
   if (context.isCollecting || entity.isSleeping) {
     return false;
+  }
+
+  // AI just manually enabled - trigger immediately
+  if (state.justEnabled) {
+    state.justEnabled = false; // Clear flag after checking
+    return true;
   }
 
   // High priority triggers
@@ -890,6 +897,7 @@ export function hideBubble() {
 export function enableAI(entity) {
   const state = getAIState(entity);
   state.enabled = true;
+  state.justEnabled = true; // Flag for immediate trigger
   console.log(`🤖 AI enabled for ${entity.type}`);
 }
 
