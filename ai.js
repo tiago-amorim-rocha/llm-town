@@ -58,7 +58,8 @@ function getAIState(entity) {
       currentPlan: [],
       currentIntent: '',
       actionHistory: [], // Keep all actions for debugging
-      lastActionResult: null
+      lastActionResult: null,
+      isPending: false // Track if LLM call is currently in progress
     });
   }
   return aiState.get(entity);
@@ -107,6 +108,11 @@ export function shouldTriggerDecision(entity, context = {}) {
 
   // AI disabled
   if (!state.enabled) {
+    return false;
+  }
+
+  // Already waiting for LLM response (prevent parallel calls)
+  if (state.isPending) {
     return false;
   }
 
@@ -667,6 +673,9 @@ export async function triggerDecision(entity, entities, context = {}) {
     // Record the call for rate limiting
     recordCall(entity);
 
+    // Mark as pending to prevent parallel calls
+    state.isPending = true;
+
     // Build prompt
     const prompt = buildPrompt(entity, entities, context);
 
@@ -697,7 +706,13 @@ export async function triggerDecision(entity, entities, context = {}) {
     // Execute action
     await executeAction(decision, entity, entities);
 
+    // Clear pending flag after successful execution
+    state.isPending = false;
+
   } catch (error) {
+    // Clear pending flag on error
+    state.isPending = false;
+
     console.error('❌ AI Decision Error:', error);
     console.error('Entity:', entity.id, 'at', { x: entity.x, y: entity.y });
     console.error('Stack trace:', error.stack);
